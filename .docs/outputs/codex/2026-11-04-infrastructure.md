@@ -18,7 +18,7 @@ The [English local guide](../../local-development.md) is the runnable command re
 - Loopback-only bindings and no surviving test containers/network/volumes were checked. Local services were left running and healthy. `forge config --root contracts --json` parsed the pinned 0.8.30/Cancun configuration; no compiler build or empty test suite is claimed as contract evidence.
 - Official image indexes were inspected for amd64 and arm64 support. Action SHAs were resolved from official repos; setup-node's pinned action metadata confirms `package-manager-cache: false` is supported. Node/npm versions were checked locally and inside the successful image build.
 
-The remote workflow result belongs in [issue #2](https://github.com/dubzn/remitee-challenge/issues/2), linked to the actual pushed SHA/run. Closing that issue requires observing a successful run; creating YAML alone is insufficient.
+Remote verification completed: [Foundation run 41829734342](https://github.com/dubzn/remitee-challenge/actions/runs/41829734342) succeeded on implementation SHA `68e1e7a879bd1e5a6a34b995b4a711ac1b43f986`. Install, pinned versions, the actual check command and final resource cleanup succeeded on GitHub's amd64 runner. The observed run was push-triggered; PR triggering is configured, not separately exercised. Issues [#1](https://github.com/dubzn/remitee-challenge/issues/1) and [#2](https://github.com/dubzn/remitee-challenge/issues/2) were updated with checked acceptance criteria/evidence and closed. Adding later business suites remains in #3-#5, not a completed CI claim.
 
 ## Claude findings and Codex decisions
 

@@ -1,6 +1,6 @@
 # ERC-20 escrow challenge
 
-Status: proposed business behavior; infrastructure slice authorized and underway. Created: 2026-11-03. Updated: 2026-11-04.
+Status: proposed business behavior; infrastructure slice completed with local and CI evidence. Created: 2026-11-03. Updated: 2026-11-04.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
 Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI implementation is authorized; escrow/API/indexer implementation remains a later slice.
 Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause remains an open authority decision.

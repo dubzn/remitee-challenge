@@ -1,6 +1,6 @@
 # Infrastructure-first implementation and ownership
 
-Date: 2026-11-04. This is the next implementation block proposed by the candidate. Review/commit/push and GitHub issue creation are authorized; whether to execute this block now or leave it planned is being clarified. Escrow contract implementation is not part of this block.
+Date: 2026-11-04. The candidate explicitly authorized implementation of local infrastructure and CI after the planning review. Seven issues already exist. Escrow contract implementation is not part of this block. See [commands and verification](local-development.md).
 
 ## Outcome and timebox
 
@@ -42,7 +42,7 @@ Seven issues were created and verified on Nov 4. Each includes roles, dependenci
 
 | Issue | Work block | Depends on |
 | --- | --- | --- |
-| [#1](https://github.com/dubzn/remitee-challenge/issues/1) | Local Docker/toolchain foundation | Reviewed planning publication; execution timing clarified separately |
+| [#1](https://github.com/dubzn/remitee-challenge/issues/1) | Local Docker/toolchain foundation | Reviewed planning published; implementation authorized |
 | [#2](https://github.com/dubzn/remitee-challenge/issues/2) | Baseline CI | #1 |
 | [#3](https://github.com/dubzn/remitee-challenge/issues/3) | Escrow and Foundry tests | #1 scaffold, #2 CI, pause decision and authorization to start contracts |
 | [#4](https://github.com/dubzn/remitee-challenge/issues/4) | Indexer and recovery | #1, #2, #3 event interface |
@@ -55,7 +55,7 @@ Documentation and issue bodies remain English. Local credentials and temporary a
 ## Current evidence
 
 - Repository: `dubzn/remitee-challenge`, default branch `master`; connected account has push access. No existing issues were returned at intake.
-- Docker CLI and Compose are installed. Docker daemon was not running during the read-only preflight; local smoke checks have not passed.
-- Foundry 1.4.1 and Node 24.14.1 are locally available. Final compatible container/tool versions and startup commands must be verified during implementation.
-- No business code, Docker configuration, CI workflow or runtime tests have been created by this planning note.
+- Docker Desktop was started for implementation. Pinned multi-architecture images, tools, Compose and actual isolated positive/negative checks passed locally. Anvil is ephemeral and PostgreSQL uses one named volume; stopped/partial development projects require explicit joint reset before a fresh session.
+- Foundry 1.4.1, Solidity config 0.8.30/Cancun, Node 24.14.1/npm 11.11.0 and PostgreSQL 17.11 are fixed. Local startup, repeated-up reuse, stopped-project refusal, SQL commit/error rollback, reset and clean startup were checked.
+- Claude created the bounded CI workflow; Codex reviewed it and corrected runtime findings. Remote run evidence is tracked in issue #2. See [implementation and review evidence](outputs/codex/2026-11-04-infrastructure.md). No business code or contract/API tests exist.
 - GitHub connector issue creation returned 403 (integration access); the CLI had no login. The existing authenticated browser session successfully created issues #1-#7; the final list showed all seven open.

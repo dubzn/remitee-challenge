@@ -1,0 +1,38 @@
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.4.1@sha256:629bebb49d1ba44a52a9fc14229dd58930e3193b4b206ae43ad00089e9ead95b
+    entrypoint: ["anvil"]
+    command: ["--host", "0.0.0.0", "--chain-id", "31337", "--hardfork", "cancun", "--silent"]
+    stop_grace_period: 20s
+    healthcheck:
+      test: ["CMD", "cast", "chain-id", "--rpc-url", "http://127.0.0.1:8545"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  postgres:
+    image: postgres:17.11-alpine3.23@sha256:05aa77262db9277fde6374bb2f901c9604b8a9373029e1a7993440c6aae48736
+    environment:
+      POSTGRES_USER: remitee
+      POSTGRES_PASSWORD: remitee_local_only
+      POSTGRES_DB: remitee
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "remitee", "-d", "remitee"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  tools:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile.tools
+    environment:
+      RPC_URL: http://anvil:8545
+      DATABASE_URL: postgres://remitee:remitee_local_only@postgres:5432/remitee
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+volumes:
+  postgres-data:

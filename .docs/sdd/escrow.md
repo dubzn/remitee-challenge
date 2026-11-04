@@ -1,8 +1,8 @@
 # ERC-20 escrow challenge
 
-Status: proposed for discussion; planning only. Created: 2026-11-03. Updated: 2026-11-04.
+Status: proposed business behavior; infrastructure slice authorized and underway. Created: 2026-11-03. Updated: 2026-11-04.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
-Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is now candidate-selected; implementation remains unauthorized.
+Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI implementation is authorized; escrow/API/indexer implementation remains a later slice.
 Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause remains an open authority decision.
 Visual walkthrough: [contract flow diagrams](../contract-flows.md). Every payout requires a new authorized resolution transaction; time alone does not execute or transfer tokens.
 Next block: [infrastructure-first setup, CI and ownership](../infrastructure-plan.md), before business contract implementation. Unit contract tests later run without requiring Docker.
@@ -44,7 +44,7 @@ Within the first two hours both sender cancellation and beneficiary actions are 
 
 ### Acceptance criteria
 
-All criteria are currently **unverified**: there is no implementation. The evidence column defines future verification, not completed work.
+All AC1-AC12 criteria remain **unverified**: no business implementation exists. The infrastructure subset has [separate evidence](../local-development.md), not completed escrow/application acceptance.
 
 | ID | Observable requirement | Required evidence |
 | --- | --- | --- |
@@ -164,6 +164,6 @@ No data migration or rollout is needed now because there is no application data 
 
 ## Verification
 
-There are no executed contract/API tests or verified application behaviors yet. Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [latest Codex disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion once authorized.
+There are no executed contract/API tests or verified application behaviors yet. Foundation verification is recorded in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
 
 Use actual PostgreSQL transactions and a separate database per parallel test worker; schema separation alone does not isolate advisory locks. Use a private Anvil per integration worker or run time-travel suites serially. Foundry unit tests use their in-process EVM independently of Docker. Compose provisions local Anvil/PostgreSQL and startup migrations; preserve/validate chain identity or reset both datasets explicitly. Before submission, review the diff, check AI claims against implementation and rehearse limitations.

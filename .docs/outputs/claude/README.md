@@ -52,6 +52,7 @@ Runner footer:
 > - Current session: 88% remaining · resets Nov 4 at 12am (America/Buenos_Aires)
 > - Current week (all models): 98% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)
 
+
 ## Confirmations and emergency-pause consultation
 
 Date: 2026-11-04. Candidate-requested `opus` / `high` read-only consultation completed successfully, exit code 0, no stderr.
@@ -83,3 +84,19 @@ Runner footer:
 > Claude usage remaining:
 > - Current session: 98% remaining · resets Nov 4 at 1:30pm (America/Buenos_Aires)
 > - Current week (all models): 98% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)
+
+## Infrastructure review and CI edit
+
+Date: 2026-11-04. Candidate-authorized `opus` / `xhigh` edit consultation completed successfully, exit code 0, no stderr. Claude created only `.github/workflows/foundation.yml` and supplied a bounded review; Codex owns all execution and runtime corrections.
+
+- [Exact prompt](2026-11-04-ci-prompt.md).
+- [Unmodified response and usage footer](2026-11-04-ci-output.md).
+- [Codex implementation evidence and finding disposition](../codex/2026-11-04-infrastructure.md).
+
+Codex reviewed the full workflow, fixed TCP readiness, qualified the SQL entry point and failure diagnostics, and replaced unverified Anvil snapshot persistence with explicit disposable-session/reset semantics. Local checks passed; the actual pushed workflow result is tracked in issue #2. The response is a review of its input revision, not a claim that Claude ran tests.
+
+Runner footer:
+
+> Claude usage remaining:
+> - Current session: 87% remaining · resets Nov 4 at 1:30pm (America/Buenos_Aires)
+> - Current week (all models): 97% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)

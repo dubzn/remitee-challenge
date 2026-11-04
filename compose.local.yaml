@@ -1,0 +1,7 @@
+services:
+  anvil:
+    ports:
+      - "127.0.0.1:8545:8545"
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"

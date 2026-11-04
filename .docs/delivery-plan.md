@@ -62,4 +62,4 @@ Follow-up on Nov 4: the 32-44 hour envelope does not include a gateway/pauser, p
 - Repository access is confirmed; commits are focused; temporary data, generated artifacts, secrets, and local credentials are excluded.
 - AI prompts and substantive outputs are retained, with adopted/rejected advice explained. Candidate can defend the result.
 
-The candidate authorized publishing the reviewed planning and creating tracking issues on Nov 4. Infrastructure execution is a separate next block; no application or contract implementation is evidenced by this plan.
+The candidate authorized publishing planning, creating issues, and subsequently implementing local infrastructure/CI on Nov 4. See [foundation commands/evidence](local-development.md). This does not complete business acceptance or authorize the contract slice.

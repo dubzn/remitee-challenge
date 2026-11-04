@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: planning only. Updated: 2026-11-04. All authored documentation is in English.
+Status: infrastructure implementation authorized; business specification remains under discussion. Updated: 2026-11-04. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. No application, contract, test, deployment, or configuration code is authorized at this stage.
+The intended outcome is one reviewable submission within one week. The candidate authorized local infrastructure and CI on Nov 4. Escrow, indexer and API implementation remain later slices. Start with [local commands and verification](local-development.md).
 
 ## Start here
 

@@ -1,0 +1,4 @@
+Failed to authenticate: OAuth session expired and could not be refreshed
+
+Claude usage remaining:
+- Unavailable from `/usage`; no estimate was made.

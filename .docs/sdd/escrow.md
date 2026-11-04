@@ -1,7 +1,11 @@
 # ERC-20 escrow challenge
 
-Status: proposed for discussion; planning only. Date: 2026-11-03.
+Status: proposed for discussion; planning only. Created: 2026-11-03. Updated: 2026-11-04.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
+Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is now candidate-selected; implementation remains unauthorized.
+Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause remains an open authority decision.
+Visual walkthrough: [contract flow diagrams](../contract-flows.md). Every payout requires a new authorized resolution transaction; time alone does not execute or transfer tokens.
+Next block: [infrastructure-first setup, CI and ownership](../infrastructure-plan.md), before business contract implementation. Unit contract tests later run without requiring Docker.
 
 ## Problem and outcome
 
@@ -11,15 +15,15 @@ The candidate must be able to explain the implementation and its limitations in 
 
 ## Scope
 
-- One non-upgradeable contract managing multiple escrows and tokens.
+- One non-upgradeable deployment managing multiple escrow IDs and tokens; no contract deployment per operation.
 - Four resolution paths: sender cancellation, beneficiary acceptance, beneficiary rejection, and sender recovery after expiry.
-- Node.js/TypeScript API with a durable event indexer and SQLite projection.
+- Node.js/TypeScript API with a durable event indexer and PostgreSQL projection.
 - Three required GET endpoints; tests; one-command local environment; deterministic demo; README; AI prompt/output record.
-- A few focused security/property tests and basic CI are the only planned optional additions, conditional on mandatory acceptance.
+- Basic CI is planned baseline and starts with infrastructure checks. Focused adversarial/access/time tests are mandatory; an extended property suite and creation-time filtering are optional after required behavior is stable.
 
 ## Non-goals
 
-Frontend, production/mainnet deployment, mandatory testnet deployment, transaction signing by the API, custody, proxies, owner recovery powers, cross-chain settlement, permit, fee-on-transfer support, webhooks, Kubernetes, cloud infrastructure, or a generalized indexing framework.
+Frontend, production/mainnet deployment, mandatory testnet deployment, transaction signing by the API, custody, proxies, owner recovery powers, cross-chain settlement, permit, fee-on-transfer support, token allowlist, arbitration/disputes, partial payouts, dashboard, failed-transaction observer, separate queue broker, webhooks, Kubernetes, cloud infrastructure, or a generalized indexing framework.
 
 ## Observable behavior
 
@@ -47,14 +51,14 @@ All criteria are currently **unverified**: there is no implementation. The evide
 | AC1 | Valid creation locks the exact amount and records sender, beneficiary, token, deadlines, and unique ID. Zero amount, invalid beneficiary, invalid token address, and failed transfer revert without an escrow or event. Standard and no-return tokens work. | Contract happy-path, validation, allowance/balance failure, false-return, and no-return token tests. |
 | AC2 | All four resolution paths use the caller and time rules above. Only Released pays the beneficiary. | Transition tests; `deadline - 1`, exact deadline, and `deadline + 1` tests for each relevant action. |
 | AC3 | Unknown IDs (including getter reads), unauthorized callers, repeated resolution, and competing terminal actions revert with clear custom errors. No administrative escape path exists. | Access/error matrix and first-success-wins tests; interface review. |
-| AC4 | Reentrancy cannot create an underfunded escrow or resolve one twice. Failed payouts leave the escrow pending and its funds/accounting unchanged. Escrows cannot spend another escrow's backing under the supported token assumptions. | Malicious callback token, failed outgoing transfer, multiple escrow/token, and conservation tests. |
-| AC5 | Creation and every resolution emit sufficient events for reconstruction; the getter returns the same escrow facts. | Event payload assertions and projection reconstruction tests without per-escrow storage reads. |
-| AC6 | Repeated events, reconnects, and overlapping fetched ranges do not duplicate escrows, overwrite later state, or corrupt the cursor. | Replay tests against the real database adapter. |
+| AC4 | Reentrancy cannot create an underfunded escrow or resolve one twice. Failed payouts leave the escrow pending and its funds/accounting unchanged. Escrows cannot spend another escrow's backing under the supported token assumptions. | Map review/tests to OWASP SC05:2025: malicious callbacks during creation and payout, cross-action reentry, failed transfers, multiple escrows/tokens, and backing invariants. This is not an audit claim. |
+| AC5 | Creation and every resolution emit sufficient events for reconstruction; getter returns the same facts. Required names: EscrowCreated, EscrowCancelled, EscrowReleased, EscrowRejected, EscrowExpired. | Event/field assertions and reconstruction tests without per-escrow storage reads; freeze event signatures before indexer work. |
+| AC6 | Observation/traceability only: repeated events, reconnects, and overlapping ranges cannot duplicate escrows, regress state, or corrupt the cursor. A second indexer cannot become a concurrent writer. No wallet transaction execution or resubmission is performed. | Actual PostgreSQL unique-event, replay, second-writer exclusion, stale-cursor rejection, and ordered-application tests. |
 | AC7 | Restart resumes after the last completely committed range end, including ranges with no events. An interrupted range applies all its events and cursor or none. | Real-DB restart and crash/rollback tests with multiple ordered logs across blocks. |
-| AC8 | Confirmation policy, chain identity, and checkpoint hash are observable; canonical mismatch halts indexing and marks the service unready until validated reset/replay. | Simulated mismatch, unchanged checkpoint/no partial writes, and explicit replay tests; README limitations. |
-| AC9 | Detail/list endpoints expose parties, token, decimal-string amounts/IDs, event-provided deadlines, creation/resolution hashes, recorded status, effective status, cancellation eligibility, and expiry recovery eligibility. Status filtering happens before pagination. | Pure derivation tests for all states/boundaries, plus focused HTTP/DB tests for serialization, combined filters, invalid inputs, 404, and pagination. |
-| AC10 | Health exposes RPC/database/indexer status, latest observed block/time, last indexed block, confirmation delay, lag, and recovery/error state. Unready service reports degraded health. | Health tests during catch-up, RPC failure, and mismatch recovery. |
-| AC11 | One documented command starts local node, deploys the contract and test token, initializes the database, and starts the API. Demo uses separate escrows for all four outcomes, mines after time advancement, shows recoverable expiry before recovery, and verifies final API results. | Fresh environment run with no existing DB or deployment artifacts; deterministic time advancement. |
+| AC8 | Confirmation-delay policy, chain identity and checkpoint hash are observable. Events stay outside the projection until eligible and committed; a verified post-admission mismatch halts indexing until validated replay. | Depth N-1/N/N+1, orphan-before-admission, mismatch-after-admission, unchanged checkpoint/no partial writes, and explicit replay tests; README limitations. |
+| AC9 | Detail/list expose parties, token, decimal-string amounts/IDs, creation time/deadlines, transaction hashes, recorded/effective status and eligibility. Required address/state filters run before newest-first pagination; rows/metadata share a DB snapshot. | Pure derivation plus PostgreSQL/HTTP tests for required filters, snapshots, serialization, invalid inputs, 404 and pagination. Half-open creation-time filters are optional; their tests are required only if selected. |
+| AC10 | Health exposes RPC/DB/indexer status, observed head/time, last indexed block, delay, head lag, eligible-work backlog and recovery/error state. Expected confirmation lag is distinguished from unprocessed eligible work. | Health tests during catch-up, RPC failure, waiting for eligibility, and mismatch recovery. |
+| AC11 | One command starts node, deployment, database and API. Demo uses separate escrows for all four outcomes, mines after time changes and enough extra blocks for the chosen delay, shows recoverable expiry before recovery, then verifies admitted API results. | Clean run; deterministic mining/time advancement; no wait that assumes idle Anvil will produce confirmations automatically. |
 | AC12 | Repository includes contract and API tests, runnable instructions, design assumptions, HTTP examples, improvements, useful commits, and English AI outputs. | Final submission checklist and candidate explanation rehearsal. |
 
 ## Assumptions and proposed decisions
@@ -63,15 +67,16 @@ These are proposals, not additional requirements from Remitee.
 
 | Decision | Proposal | Reason / limit |
 | --- | --- | --- |
-| Stack | Foundry/Anvil; Solidity 0.8.x; OpenZeppelin utilities; Node.js/TypeScript, viem, Fastify, SQLite. | Candidate confirmed Foundry + TypeScript familiarity. Exact compatible versions and SQLite adapter remain to be pinned. |
-| Authority | No owner, pause, upgrade, or rescue method. | Nothing in the required lifecycle needs privileged fund movement. |
-| Token policy | Standard balance-preserving ERC-20s and no-return tokens; reject deposits whose actual received amount differs from the requested amount. | Fee-on-transfer and rebasing behavior are outside the baseline. Arbitrary malicious tokens cannot be made economically safe by SafeERC20. See token spike. |
+| Stack | Foundry/Anvil; Solidity 0.8.x; OpenZeppelin utilities; Node.js/TypeScript, viem, Fastify, PostgreSQL with node-postgres. | Candidate selected PostgreSQL and confirmed Foundry + TypeScript familiarity. Pin compatible versions and include real PostgreSQL setup/migrations/tests. |
+| Reuse | Prefer compatible maintained primitives or an exact-fit escrow over unnecessary custom mechanisms. Current recommendation is a minimal domain contract on SafeERC20/ReentrancyGuard. | Reviewed OpenZeppelin Escrow/VestingWallet are not drop-in matches; a wrapper still needs actor/time/token correctness and adversarial tests. See design review. |
+| Authority, proposed baseline | Recommend no owner, pause, upgrade, or rescue method; API independently read-only. Pause/gateway remains under discussion. | The challenge forbids privileged fund movement, not the existence of an owner or a pause mechanism. No-pause is our design proposal; interference with actor/time availability needs explicit assessment. |
+| Token policy, candidate-confirmed | Simple balance-preserving ERC-20 behavior plus mandatory no-return compatibility; reject deposits with a received-amount mismatch. | Per-escrow token choice remains; no fee/rebase/allowlist extension. Demo may use a simple mock, but required no-return tests remain. |
 | Beneficiary validation | Reject zero, sender, and the escrow contract itself. | The first two are required; the third is a proposed extra guard against releasing funds back into the escrow with no withdrawal path. |
 | Time source | Latest successfully observed canonical head timestamp, cached by the indexer, with source metadata in API/health. | Agrees with local EVM time travel. Host wall-clock time is not authoritative; never substitute it silently if RPC observation fails. |
 | Read model | Preserve `onChainStatus`; derive `effectiveStatus`, `canCancel`, and `canRecover` using the event-provided deadlines. | Never recompute deadlines in the API. `ExpiredRecoverable` means recorded Pending with elapsed TTL. `Expired` means a recovery event exists. |
 | Filter semantics | `status` filters `effectiveStatus`, including `ExpiredRecoverable`, in SQL before pagination; omitted filters include all. Sender/beneficiary filters combine with AND. | Expired pending escrows must be discoverable. All rows in one response use the same observed chain timestamp. |
-| Pagination | Bounded `limit` and `offset`, deterministic ID ordering; amounts and IDs are decimal strings. | Small local dataset; no cross-request snapshot promise. Never coerce uint256 token amounts into JS numbers. |
-| Finality | Configurable confirmation delay; local demo default 0 for immediate feedback. | Delayed indexing reduces exposure; no finite delay guarantees finality. The demo is not evidence of production finality. |
+| Pagination and optional time filters | Bounded `limit`/`offset`, newest first by decreasing ID. Defer `createdFrom` inclusive / `createdTo` exclusive until mandatory slices are stable. | `limit=N` gives latest N matches. Required filters run before pagination; optional time filters use the same rule if added. No cross-request snapshot promise. |
+| Confirmation policy, proposed | Configurable depth; propose local demo delay 2 additional blocks after inclusion, with 0 an explicit fast-test mode. Project only eligible canonical events. | `eligibleHead = head - delay`; not a wallet/library confirmation-count convention or consensus finality. Mine extra blocks in the local demo. No production N is selected. |
 | Reorg recovery | Validate deployment anchor and checkpoint hashes at startup and each scan. Any mismatch halts indexing and marks unready; explicitly validate configuration, reset the disposable projection, and replay from the correct deployment. | One safe failure path; no automatic deletion on an identity mismatch, generalized fork rollback, or automatic recovery daemon. |
 
 ## Technical plan
@@ -82,7 +87,7 @@ These are proposals, not additional requirements from Remitee.
 flowchart LR
     Wallet[User wallet / local demo signer] -->|approve and actions| Chain[Anvil: ERC-20 + one Escrow contract]
     Chain -->|logs and block metadata via RPC| Indexer[Indexer module]
-    Indexer -->|atomic events + projection + cursor| DB[(SQLite)]
+    Indexer -->|atomic events + projection + cursor| DB[(PostgreSQL)]
     Client[HTTP caller] --> API[Read-only API module]
     DB --> API
     Indexer -->|cached observed head/time and health| API
@@ -92,15 +97,16 @@ flowchart LR
     end
 ```
 
-The chain owns outcomes and balances. SQLite is a rebuildable projection. The API has no private keys or write endpoints. Local demo/deployment signers are development-only and live outside the API boundary.
+The chain owns outcomes and balances. PostgreSQL is a rebuildable projection. The API has no private keys or write endpoints. Local demo/deployment signers are development-only and live outside the API boundary.
 
 ### Contract boundary
 
 - Sequential IDs start at 1; distinguish missing IDs from Pending.
 - Use safe ERC-20 calls and guard every external state-changing entry point against reentrancy, including creation.
+- Creation validates, reads the prior token balance, transfers under the guard, verifies the received delta, then writes the fully funded escrow and emits its event. Do not expose a provisional unfunded record during callbacks; do not force payout-style ordering onto this deposit check.
 - Validate caller/state/time before resolution. Set terminal state before external payout; payout failure reverts the whole transaction.
 - Explicitly reject zero token address and addresses with no contract code; check received balance delta on creation. Do not depend on token symbol or decimals for correctness.
-- Created event contains ID, sender, beneficiary, token, amount, cancellation deadline, and expiry; index ID, sender, and beneficiary. Terminal events contain ID and actor. Creation plus terminal event and log metadata reconstruct the full record and transaction hashes.
+- Created event contains all mandatory fields plus `createdAt = block.timestamp`; index ID, sender, and beneficiary. This supplies creation-time filtering without guessing timestamps or changing the API's deadline arithmetic. Terminal events contain ID and actor. Events and log metadata reconstruct the record and transaction hashes.
 - Do not promise recovery if a token later blacklists the escrow, pauses transfers, rebases, or lies about its balance. Clearly state those asset-level limits.
 - Conservation tests distinguish escrow liabilities from unsolicited direct token transfers: balance is at least pending liabilities under supported assumptions; equality only applies when the test excludes donations.
 
@@ -108,17 +114,35 @@ The chain owns outcomes and balances. SQLite is a rebuildable projection. The AP
 
 One ordered HTTP polling worker observes the head and scans bounded block ranges from the deployment block through eligible head `latest - confirmationDelay`. This polling subscription to contract logs provides both live observation and catch-up; no second watcher, websocket path, or concurrent writer is needed. Poll even when the head is unchanged so RPC health is observed independently of block production.
 
-Freeze each range end before fetching logs. Validate the previous checkpoint and range-end hash, fetch logs scoped to chain/contract, and sort by block number, transaction index, then log index. Recheck canonical range-end identity before committing deduplicated events, escrow updates, and the end-block checkpoint/hash in one SQLite transaction. Commit empty ranges too. Only newly inserted events affect the projection. Unknown/out-of-order transitions are errors, not fabricated escrows. Restart retries the last uncommitted range.
+One writer is a workload-based starting assumption, not a benchmark derived from Ethereum's block cadence. Observe range duration, event volume, RPC/DB timings and `max(0, eligibleHead - indexedThrough)` backlog. Bounded concurrent RPC prefetch is a future response to measured fetch bottlenecks; preserve one ordered commit coordinator and never skip a gap in the checkpoint.
 
-Use three small data groups: event journal (including tx/block hashes and log position), escrow projection, and indexer metadata/cursor. Event identity includes chain, contract, transaction hash, and log index. Chain/deployment identity includes a deployment anchor; chain ID alone is insufficient for local resets.
+Enforce one writer per deployment using a PostgreSQL session advisory lock on the worker's dedicated connection. A second instance stays unready instead of writing. On connection loss, stop and reacquire/validate before resuming. Range commits also compare the prior cursor number/hash with the expected predecessor; any mismatch rolls back the entire transaction. Deduplication alone cannot prevent stale cursor writes.
+
+Normal indexing never decreases the checkpoint. A wholly processed old range is a no-op; a new range with a stale expected predecessor is rejected and rolled back. An overlap that extends past the current checkpoint may commit its new tail only with the current expected predecessor; duplicate prefix events do not mutate state. Only validated reset/replay may rewind, under the same writer lock with reads unready.
+
+Freeze each range end before fetching logs. Validate the previous checkpoint and range-end hash, fetch logs scoped to chain/contract, and sort by block number, transaction index, then log index. Recheck canonical range-end identity before committing deduplicated events, escrow updates, and the end-block checkpoint/hash in one PostgreSQL transaction. Commit empty ranges too. Only newly inserted events affect the projection. Unknown/out-of-order transitions are errors, not fabricated escrows. Restart retries the last uncommitted range.
+
+Verify each log's blockHash against a fetched canonical header for its block number, reusing one header lookup per event-bearing block, as well as the range-end recheck. Inconsistent/missing data cannot be committed. This detects ordinary fork/stale-response inconsistencies; the RPC provider remains trusted and this is not a cryptographic proof of its full response.
+
+Use three small data groups: event journal, escrow projection, and indexer metadata/cursor. Scope unique event identity to chain/contract/deployment, transaction hash, and log index. Insert with conflict-ignore/returning keys and mutate only newly inserted events, in the worker's explicitly sorted order; never rely on RETURNING row order. Keep all transaction statements on the same node-postgres client. Store uint256 amounts/IDs losslessly, proposed `NUMERIC(78,0)`, normalize address case, and explicitly serialize numbers/strings. No new escrow row may reset an existing terminal projection.
+
+The journal traces observed successful transitions. Persist checkpoint and last-error metadata and emit structured range/retry logs; do not label this a complete durable history of wallet or worker attempts. No wallet signing, transaction submission/retry queue, or separate broker is part of this worker.
+
+Only admitted events enter the baseline journal/projection. Before admission, head/delay/checkpoint metadata and a client's known receipt can explain waiting; no second provisional transaction store is promised. Re-query/validate canonical logs at eligibility. A deeper reorg after admission still requires hash verification/recovery. Delaying projection does not delay on-chain execution.
 
 Any identity/hash mismatch triggers the single safe halt policy above. Suppress escrow reads while halted or rebuilding so partial or orphaned projections are not presented as current. Reset/replay is an explicit local operation against a validated deployment, not an automatic wipe using stale metadata. Confirmation delay, replay cost, RPC range limits, and residual race/deep-reorg exposure belong in the README.
 
+RPC timeouts, unavailable checkpoint blocks, or a head behind the stored cursor make verification unavailable and the service unready; they do not alone prove a reorg or justify deletion. Confirm the canonical hash/identity or diagnose a reset/stale provider before explicit recovery.
+
 ### API boundary
 
-`GET /escrows/:id`, `GET /escrows?sender=&beneficiary=&status=&limit=&offset=`, and `GET /health` are the only required endpoints. Validate query inputs; return 400 for malformed requests and 404 for absent escrows.
+`GET /escrows/:id`, `GET /escrows?sender=&beneficiary=&status=&limit=&offset=` and `GET /health` are baseline endpoints. `createdFrom`/`createdTo` remain a deferred optional extension, not required acceptance. Validate inputs; if time bounds are added, validate contradictory bounds too. Return 400 for malformed requests and 404 for absent escrows. Lists contain escrow records, not raw events; see the proposed envelope in the design review.
+
+Read rows and indexed cursor/hash from one PostgreSQL statement or one `REPEATABLE READ READ ONLY` transaction using the same connection. Use one captured observed RPC head/time for derivation across the response and ensure it is compatible with the reported checkpoint. Default READ COMMITTED across separate statements does not provide this guarantee. Expose observed head/hash/time, indexed block/hash, confirmation delay, and lag; do not claim synchronous freshness with the chain head.
 
 Transaction hashes cover successful escrow state changes: one creation and, if resolved, one resolution. Approval transactions and reverted wallet attempts are not reconstructable from escrow state-change logs and are outside this read model. Timestamps use Unix seconds consistently.
+
+Mined reverts can still be observed through transaction receipts when their hashes are known. Wallet rejection/simulation failure before broadcast has no on-chain receipt. A failed-attempt observer and dashboard remain future research, as distinct from the event projection. Never retry a create transaction automatically: a new nonce can create and fund a second escrow.
 
 Compute derived fields at read time; no scheduled expiration updates and no synthetic chain events. `canCancel` and `canRecover` describe role/time eligibility for a recorded pending escrow at the reported observation, not a guarantee that a new transaction will succeed. Confirmation lag, concurrent resolutions, and token restrictions remain possible.
 
@@ -129,16 +153,17 @@ If there is no usable chain-time observation or the indexer is halted/rebuilding
 | Slice | Scope | Completion condition |
 | --- | --- | --- |
 | S0 | Discuss architecture and desk-reviewed spike decisions. | Candidate can explain the state machine, token assumption, replay strategy, and derived state; SDD updated without an additional open-ended research round. |
+| I0 | Scaffold, Docker foundation and initial CI before business behavior. | Actual RPC/DB/rollback/mining/negative-case evidence; green CI on the pushed SHA. No empty suite presented as contract coverage. |
 | S1 | Contract and its transition/security tests. | AC1-AC5 pass with actual token balances and boundary assertions. |
 | S2 | Durable indexer, schema, and recovery tests. | AC6-AC8 pass using the intended DB adapter and local chain fixtures. |
 | S3 | API and time/filter/health tests. | AC9-AC10 pass, including expiry without a recovery transaction. |
 | S4 | One-command startup and complete demo. | AC11 passes from a clean local state; API and contract agree. |
 | S5 | Documentation, review, explanation, and submission preparation. | AC12 and every mandatory criterion have recorded evidence. |
 
-No data migration or rollout is needed now because the repository is empty. Future local schema changes may rebuild disposable projections from the pinned deployment. Deployment failure/reset must not reuse an unrelated database silently.
+No data migration or rollout is needed now because there is no application data or implementation yet. Future local schema changes may rebuild disposable projections from the pinned deployment. Deployment failure/reset must not reuse an unrelated database silently.
 
 ## Verification
 
-There are no executed contract/API tests or verified application behaviors yet. Completed planning validation consists of source review, technical reference checks, and a separate Claude Opus/high architecture review. Its first invocation failed on expired OAuth; the retry succeeded. See [consultation status](../outputs/claude/README.md) and [Codex disposition](../outputs/codex/2026-11-03-review-disposition.md). Record implementation evidence beside each acceptance criterion once authorized.
+There are no executed contract/API tests or verified application behaviors yet. Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [latest Codex disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion once authorized.
 
-Use actual SQLite transactions for idempotency/restart tests, explicit EVM timestamps for contract boundaries, and a clean end-to-end run for reproducibility. Before submission, review the complete diff, check that AI output claims match the implementation, and rehearse the known limitations.
+Use actual PostgreSQL transactions and a separate database per parallel test worker; schema separation alone does not isolate advisory locks. Use a private Anvil per integration worker or run time-travel suites serially. Foundry unit tests use their in-process EVM independently of Docker. Compose provisions local Anvil/PostgreSQL and startup migrations; preserve/validate chain identity or reset both datasets explicitly. Before submission, review the diff, check AI claims against implementation and rehearse limitations.

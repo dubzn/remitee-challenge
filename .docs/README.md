@@ -1,6 +1,6 @@
 # Remitee challenge planning
 
-Status: planning only. Updated: 2026-11-03. All authored documentation is in English.
+Status: planning only. Updated: 2026-11-04. All authored documentation is in English.
 
 The intended outcome is one reviewable submission within one week. No application, contract, test, deployment, or configuration code is authorized at this stage.
 
@@ -11,6 +11,10 @@ The intended outcome is one reviewable submission within one week. No applicatio
 3. [Delivery plan](delivery-plan.md): effort range, calendar, cut rules, and submission gate.
 4. [Spikes](spikes/README.md): bounded questions to resolve before implementation.
 5. [Codex analysis](outputs/codex/2026-11-03-analysis.md), [Claude review](outputs/claude/2026-11-03-review.md), and [review disposition](outputs/codex/2026-11-03-review-disposition.md): separate contributions, retained prompt outputs, and the decisions taken after independent review.
+6. [Architecture feedback and worked examples](design-review.md): candidate questions, PostgreSQL, reuse assessment, crash/reorg examples, and a proposed API response. See [feedback decisions](outputs/codex/2026-11-03-feedback-decisions.md) for the second review's disposition. Earlier outputs retain the SQLite proposal as historical evidence; the current SDD selects PostgreSQL.
+7. [Confirmations, capacity, and emergency pause](safety-review.md): accepted observation/token boundaries, confirmation timeline, and the pause policy still under discussion. See [safety decisions](outputs/codex/2026-11-04-safety-decisions.md) for Codex's assessment of the new Claude review.
+8. [Contract flow diagrams](contract-flows.md): lifecycle, creation/funding sequence, token-exit checks, and expiry without a transaction. Start here to understand who actually triggers each payout.
+9. [Infrastructure-first block and ownership](infrastructure-plan.md): Docker foundation, baseline CI, seven linked GitHub issues and division between Codex and Claude before contracts. See the [Opus/xhigh pre-commit review disposition](outputs/codex/2026-11-04-preflight-decisions.md) for corrections and remaining decisions.
 
 ## Working agreement
 
@@ -23,4 +27,4 @@ The intended outcome is one reviewable submission within one week. No applicatio
 
 ## Current recommendation
 
-Aim for a functional core on Friday, November 6, and submission on Monday, November 9, 2026. November 7 is a Saturday. This is a planning estimate, not an employer deadline; verify any externally agreed deadline separately.
+After front-loading infrastructure and CI, aim for a functional core on Saturday, November 7, and submission on Monday, November 9, 2026. This is a conditional planning estimate, not an employer deadline; verify any externally agreed deadline separately.

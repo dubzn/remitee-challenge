@@ -4,49 +4,54 @@ Planning date: Tuesday, November 3, 2026. Candidate availability: 5-6 effective 
 
 ## Recommendation
 
-Use Friday, November 6 as an internal functional-core checkpoint and Monday, November 9 as the proposed submission date. November 7 is Saturday. No employer deadline was supplied; the candidate must reconcile this plan with any agreed deadline.
+Use Saturday, November 7 as the revised internal functional-core checkpoint and Monday, November 9 as the proposed submission date. Friday is November 6. No employer deadline was supplied; the candidate must reconcile this plan with any agreed deadline.
 
 Friday submission is a stretch: November 4-6 provides only 15-18 hours, plus whatever remains on kickoff day. November 4-9 provides 30-36 hours, plus kickoff time. AI can accelerate drafting and review, but candidate understanding, integration, testing, and clean-run verification still consume time.
 
-Budget roughly 26-34 hours for the mandatory deliverable, plus 4-6 hours of contingency: approximately 30-40 effective hours total. These are planning ranges, not measured implementation throughput or multiplied agent-hours. Monday is safer but not guaranteed; cap scope rather than treating the weekend as unlimited capacity.
+After PostgreSQL, infrastructure-first ordering and baseline CI, budget roughly 29-39 hours for mandatory work plus 3-5 hours of contingency: approximately 32-44 effective hours total. The prior 30-40 estimate assumed SQLite. These are planning ranges, not measured throughput or multiplied agent-hours. The high end exceeds the 30-36 hours available Nov 4-9 before counting kickoff work, so Monday is conditional, not guaranteed. No dashboard, transaction observer, broker, or new token policies this week.
 
-Claude's independent estimate is approximately 25-36 hours including contingency, assuming familiar tooling and a simplified indexer. Codex retains 30-40 hours as the conservative planning envelope, including planning/review and recovery verification. Both recommend Monday. Do not add the estimates together.
+Claude's original 25-36 estimate assumed the earlier stack. PostgreSQL/read-model work was previously allowed 2-4 additional hours. The foundation below reallocates one hour from startup/demo and 1-2 hours from that increment; it is not added again. Basic CI takes one hour from contingency. Creation-time filters and an extended invariant suite are deferred optional work. These are planning reallocations, not measured savings.
 
 ## Effort budget
 
 | Work | Hours | Includes |
 | --- | --- | --- |
 | Source review, architecture discussion, bounded spikes | 2-3 | Close behavioral assumptions; verify/choose toolchain activation before coding. |
+| Scaffold and Docker foundation | 2-3 | Reallocated setup time: pinned tools, Anvil/PostgreSQL, real positive/negative smoke checks and isolation. |
+| Initial baseline CI | 1 | Same checks as local; taken from contingency, with a strict initial timebox. |
 | Contract and tests | 6-8 | All paths, exact boundaries, token failures, access/reentrancy. |
 | Indexer and database tests | 6-8 | Ordered processing, atomic cursor, replay/restart, reorg policy. |
 | API and tests | 3-4 | Filters, pagination, derived time state, health. |
-| Startup/demo and reviewer documentation | 4-5 | Clean setup, all terminal flows, HTTP examples, AI records. |
+| Full startup/demo and reviewer documentation | 3-4 | Integrate later deployment/API and all terminal flows; setup partly completed in foundation. |
 | Independent review and explanation rehearsal | 5-6 | Fix critical findings; candidate defends choices. |
-| **Mandatory work subtotal** | **26-34** | Tests are included with their slices. |
-| Contingency | 4-6 | Tooling friction, integration defects, recovery corner cases. |
-| **Total planning range** | **30-40** | Optional work uses only genuine remaining capacity. |
+| Remaining PostgreSQL/read-model increment | 1-2 | Remaining writer/snapshot integration; DB provisioning is already in foundation. |
+| **Mandatory work subtotal** | **29-39** | Tests are included with their slices. |
+| Contingency | 3-5 | One hour reassigned to baseline CI; remaining tooling/integration/recovery risk. |
+| **Total planning range** | **32-44** | Optional work uses only genuine remaining capacity. |
 
 ## Calendar and gates
 
 | Date | Target | Exit condition |
 | --- | --- | --- |
 | Tue Nov 3 | Planning and source review | Discuss architecture, scope, and desk-reviewed spike decisions. No implementation without a new instruction. |
-| Wed Nov 4 | Contract slice | Lifecycle, access, transfer failures, exact boundaries covered. |
-| Thu Nov 5 | Contract closeout and indexer | Event replay and atomic checkpoint work against real DB. |
-| Fri Nov 6 | Functional core checkpoint | All lifecycle outcomes reach the API; restart works; major gaps identified. |
-| Sat Nov 7 | Integration and failure behavior | Derived expiry, duplicate replay, recovery policy, health, and demo verified. |
+| Wed Nov 4 | Review/publish planning; scaffold, local foundation and initial CI next | Issues and ownership recorded; when implementation is authorized, actual smoke/CI evidence before calling infrastructure ready. |
+| Thu Nov 5 | Contract and event interface | Lifecycle/core tests; event signatures frozen early; independent adversarial cases. |
+| Fri Nov 6 | Contract closeout and indexer | AC1-AC5 evidence and ordered durable event processing/restart core. |
+| Sat Nov 7 | Functional core checkpoint | API, derived expiry, replay/restart and all lifecycle flows integrated; critical gaps resolved. |
 | Sun Nov 8 | Feature freeze and submission rehearsal | Fresh startup succeeds; README and AI logs match behavior; candidate explanation rehearsed. |
 | Mon Nov 9 | Buffer and delivery | Only fixes and final checks; share repository when authorized. |
 
-Do not begin a new optional feature after Saturday. If the mandatory core is incomplete on Friday, use the weekend to finish it and remove every optional addition.
+The functional-core checkpoint moves from Friday to Saturday; the submission target does not move. Do not start optional work after Saturday. If mandatory slices slip, remove all optional additions and report the specific acceptance risk; do not silently assume extra candidate hours.
 
 ## Scope cuts
 
 Never cut access control, token safety, exact time rules, terminal immutability, mandatory tests, restart/idempotency, derived expiry, local startup, or the complete demo.
 
-Cut in this order: testnet deployment; webhooks/permit/fee support; gas tuning and extra tools; elaborate CI. At most two optional additions: a compact Foundry invariant/fuzz suite (2-hour cap) and basic CI (1-hour cap), after mandatory criteria are stable. Drop either if its timebox is exceeded; do not substitute more tooling. Do not introduce PostgreSQL, queues, separate services, Docker, or generalized reorg rollback merely to mirror the JD. The one-command baseline uses local tooling.
+Drop testnet, webhooks/permit/fee support, gas tuning and extra tools first. An extended invariant suite (2-hour cap) and creation-time filters are optional after mandatory acceptance; adversarial/access/time tests remain mandatory. Basic CI is now baseline, not an optional cut. PostgreSQL and Docker local execution are candidate choices; Compose contains Anvil and PostgreSQL, not a production platform. No broker, separate application services, dashboard, failed-transaction indexing or generalized rollback. Validate the Docker daemon early. If initial CI exceeds its one-hour timebox, diagnose/re-plan it rather than replacing it with more tooling or claiming success.
 
 If the plan exceeds the one-week cap, stop adding scope, identify the blocking mandatory criterion, and revise the estimate with the candidate. Do not quietly extend the deadline or label an incomplete submission complete.
+
+Follow-up on Nov 4: the 32-44 hour envelope does not include a gateway/pauser, parallel RPC fetcher, or durable provisional transaction view. Confirmation waiting is already in scope; a local delay-2 demo must explicitly mine additional blocks. Any selected pause policy changes authority/acceptance and needs an incremental estimate before implementation.
 
 ## Submission gate
 
@@ -57,4 +62,4 @@ If the plan exceeds the one-week cap, stop adding scope, identify the blocking m
 - Repository access is confirmed; commits are focused; temporary data, generated artifacts, secrets, and local credentials are excluded.
 - AI prompts and substantive outputs are retained, with adopted/rejected advice explained. Candidate can defend the result.
 
-Publishing, pushing, and implementation are future actions. None has been performed by this planning task.
+The candidate authorized publishing the reviewed planning and creating tracking issues on Nov 4. Infrastructure execution is a separate next block; no application or contract implementation is evidenced by this plan.

@@ -8,11 +8,13 @@ The challenge requires event subscription, idempotency, restart recovery, and a 
 
 ## Working hypothesis
 
-One process contains one ordered indexer and the API; SQLite is the durable projection. Use one HTTP polling worker to observe the head and scan missed contract logs. No separate websocket/watcher plus timer paths.
+One process contains one ordered indexer and the API; PostgreSQL is the durable projection. Use one HTTP polling worker to observe the head and scan missed contract logs. No separate websocket/watcher plus timer paths.
+
+Candidate feedback replaces the earlier SQLite choice. Enforce a deployment-scoped session advisory lock and expected-cursor compare-and-set; use one dedicated client for worker transactions. Tests must use actual PostgreSQL and cover competing starts, stale cursor writes, and commit-outcome ambiguity. API rows/metadata need one consistent read snapshot. See [worked examples](../design-review.md). No separate transaction-execution queue is implied.
 
 Commit each bounded range's deduplicated journal entries, projection mutations, and end-block checkpoint/hash together. Advance empty ranges. Scope event identity by chain and deployment; sort by block, transaction, and log order. Repeat/overlap must not reapply a mutation.
 
-Use configurable confirmations, local default 0, plus deployment anchor and checkpoint hash validation. On any mismatch halt and mark unready. Reset/replay is explicit, after validating the correct deployment metadata; suppress escrow responses until caught up. Do not automatically delete and replay from a stale deployment anchor.
+Use configurable delay, now proposed as 2 additional blocks in the local demo and 0 only as an explicit fast mode, plus deployment anchor and checkpoint hash validation. On a verified mismatch halt and mark unready. Reset/replay is explicit after validating deployment metadata; suppress escrow responses until caught up. Do not automatically delete and replay from a stale anchor. See the [confirmation and capacity follow-up](../safety-review.md).
 
 ## Questions to close
 

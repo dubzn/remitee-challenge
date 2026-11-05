@@ -1,12 +1,12 @@
 # ERC-20 escrow challenge
 
-Status: proposed business behavior; infrastructure slice completed with local and CI evidence. Created: 2026-11-03. Updated: 2026-11-04.
+Status: infrastructure and approved contract core verified locally and in CI; indexer/API remain planned. Created: 2026-11-03. Updated: 2026-11-05.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
-Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI implementation is authorized; escrow/API/indexer implementation remains a later slice.
+Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI and the approved contract core are implemented; API/indexer implementation remains a later slice.
 Current contract step: the candidate approved committing the [core interface/storage](../contract-design.md) and starting its implementation on 2026-11-05. Pause/upgrade decisions remain deferred and are not selected by this approval.
 Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause remains an open authority decision.
 Visual walkthrough: [contract flow diagrams](../contract-flows.md). Every payout requires a new authorized resolution transaction; time alone does not execute or transfer tokens.
-Next block: [infrastructure-first setup, CI and ownership](../infrastructure-plan.md), before business contract implementation. Unit contract tests later run without requiring Docker.
+Completed foundation/core: [implementation blocks, CI and ownership](../infrastructure-plan.md). Unit contract tests run with Foundry without requiring Docker; the reproducible wrapper also runs them in the pinned image.
 
 ## Problem and outcome
 
@@ -45,7 +45,7 @@ Within the first two hours both sender cancellation and beneficiary actions are 
 
 ### Acceptance criteria
 
-AC1-AC5 have [local contract evidence](../outputs/codex/2026-11-05-contract-implementation.md); C10 remote CI remains pending until observed. AC6-AC12 remain unverified for the indexer/API/full submission. Foundation evidence remains [separate](../local-development.md).
+AC1-AC5 and C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC12 remain unverified for the indexer/API/full submission. Foundation evidence remains [separate](../local-development.md).
 
 | ID | Observable requirement | Required evidence |
 | --- | --- | --- |
@@ -64,7 +64,7 @@ AC1-AC5 have [local contract evidence](../outputs/codex/2026-11-05-contract-impl
 
 ### Contract slice completion checklist
 
-Nov 5: candidate approved the [core interface/storage](../contract-design.md) and implementation. This does not freeze a proxy layout or approve administration. These checks refine AC1-AC5 without adding another product scope; all remain unverified until implementation evidence is recorded.
+Nov 5: candidate approved the [core interface/storage](../contract-design.md) and implementation. This does not freeze a proxy layout or approve administration. These checks refine AC1-AC5 without adding another product scope; all ten are now backed by implementation, local execution and observed CI evidence.
 
 - [x] **C1 - Funded creation (AC1):** exact deposit, correct immutable-per-escrow facts and deadlines, first ID 1, unique IDs; failed creation consumes no ID, record or successful escrow event.
 - [x] **C2 - Validation and existence (AC1, AC3):** zero amount, required beneficiary exclusions, proposed self-beneficiary/token-code checks, insufficient allowance/balance; unknown ID 0/future IDs revert in getter/actions instead of returning a default Pending record. Each escrow custom error has a focused test of its exact selector/arguments; selected library errors use controlled fixtures.
@@ -75,7 +75,7 @@ Nov 5: candidate approved the [core interface/storage](../contract-design.md) an
 - [x] **C7 - Escrow isolation (AC4):** fixed representative scenarios with several IDs/tokens, mixed terminal outcomes and donations check that supported-token balances cover Pending liabilities. A property/fuzz handler remains optional; production code has no unbounded summation feature.
 - [x] **C8 - Getter and event reconstruction (AC5):** exact event names/types/indexed fields, one escrow event per successful transition, getter/event agreement and complete reconstruction without escrow storage reads. Revert/log consequences are covered with C1/C5, not a separate suite.
 - [x] **C9 - Representation (AC1, AC5):** uint256 IDs/amounts retained; if uint64 timestamps are adopted, checked narrowing and a rejected out-of-range deadline are tested. Freeze the actual ABI/event signatures before indexer work; storage inspection is informational unless a proxy is selected later, with no gas benchmark required.
-- [ ] **C10 - Integration and review (AC1-AC5, AC12):** real Foundry build/tests and relevant formatting checks pass locally and in CI; dependency versions, actual evidence and independent-review disposition are recorded. Inspect the compiled ABI: this core has exactly the five mutating actions, with no administrative escape path. A later authority feature must deliberately revise that check. No empty suite or AI review counts as execution proof.
+- [x] **C10 - Integration and review (AC1-AC5, AC12):** real Foundry build/tests and relevant formatting checks pass locally and in CI; dependency versions, actual evidence and independent-review disposition are recorded. Inspect the compiled ABI: this core has exactly the five mutating actions, with no administrative escape path. A later authority feature must deliberately revise that check. No empty suite or AI review counts as execution proof.
 
 ## Assumptions and proposed decisions
 
@@ -180,6 +180,6 @@ No data migration or rollout is needed yet: the contract is implemented, but the
 
 ## Verification
 
-The implemented core has 62 passing contract tests and compiled ABI/layout evidence; see [implementation verification](../outputs/codex/2026-11-05-contract-implementation.md). API/indexer behavior remains unverified. Foundation verification is in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
+The implemented core has 62 passing contract tests locally and in CI, plus compiled ABI/layout evidence; see [implementation verification](../outputs/codex/2026-11-05-contract-implementation.md). API/indexer behavior remains unverified. Foundation verification is in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
 
 Use actual PostgreSQL transactions and a separate database per parallel test worker; schema separation alone does not isolate advisory locks. Use a private Anvil per integration worker or run time-travel suites serially. Foundry unit tests use their in-process EVM independently of Docker. Compose provisions local Anvil/PostgreSQL and startup migrations; preserve/validate chain identity or reset both datasets explicitly. Before submission, review the diff, check AI claims against implementation and rehearse limitations.

@@ -106,7 +106,7 @@ Calculate deadlines in uint256 and use checked conversion, such as SafeCast.toUi
 
 ## SDD completion checks
 
-The canonical [checklist](sdd/escrow.md#contract-slice-completion-checklist) maps AC1-AC5 to [actual evidence](outputs/codex/2026-11-05-contract-implementation.md). Local verification passed; remote CI remains a separate observed gate.
+The canonical [checklist](sdd/escrow.md#contract-slice-completion-checklist) maps AC1-AC5 to [actual evidence](outputs/codex/2026-11-05-contract-implementation.md). Local verification and both jobs of [CI run 41962697117](https://github.com/dubzn/remitee-challenge/actions/runs/41962697117) passed; C1-C10 are complete.
 
 Once the candidate approves, Codex owns core implementation/tests and actual Foundry execution. Claude receives bounded adversarial cases and independent review after the interface/event signatures settle. The current foundation CI must then run the real contract suite; an empty forge run is not completion.
 

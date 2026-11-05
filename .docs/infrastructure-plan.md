@@ -38,13 +38,13 @@ Codex owns shared root configuration/lockfiles, Compose, Foundry config and runt
 
 ## GitHub tracking
 
-Seven issues were created and verified on Nov 4. Each includes roles, dependencies, acceptance criteria and scope limits. Pause remains visible on the contract issue.
+Seven issues were created and verified on Nov 4. Each includes roles, dependencies, acceptance criteria and scope limits. The Nov 5 core approval and deferred pause/upgrade discussion are recorded on the contract issue.
 
 | Issue | Work block | Depends on |
 | --- | --- | --- |
 | [#1](https://github.com/dubzn/remitee-challenge/issues/1) | Local Docker/toolchain foundation | Reviewed planning published; implementation authorized |
 | [#2](https://github.com/dubzn/remitee-challenge/issues/2) | Baseline CI | #1 |
-| [#3](https://github.com/dubzn/remitee-challenge/issues/3) | Escrow and Foundry tests | #1 scaffold, #2 CI, pause decision and authorization to start contracts |
+| [#3](https://github.com/dubzn/remitee-challenge/issues/3) | Escrow and Foundry tests | #1 scaffold, #2 CI, Nov 5 approved core; pause/upgrades deferred |
 | [#4](https://github.com/dubzn/remitee-challenge/issues/4) | Indexer and recovery | #1, #2, #3 event interface |
 | [#5](https://github.com/dubzn/remitee-challenge/issues/5) | Read API and health | #4 schema/metadata and #3 lifecycle |
 | [#6](https://github.com/dubzn/remitee-challenge/issues/6) | Full startup and demo | #3-#5 |
@@ -57,5 +57,5 @@ Documentation and issue bodies remain English. Local credentials and temporary a
 - Repository: `dubzn/remitee-challenge`, default branch `master`; connected account has push access. No existing issues were returned at intake.
 - Docker Desktop was started for implementation. Pinned multi-architecture images, tools, Compose and actual isolated positive/negative checks passed locally. Anvil is ephemeral and PostgreSQL uses one named volume; stopped/partial development projects require explicit joint reset before a fresh session.
 - Foundry 1.4.1, Solidity config 0.8.30/Cancun, Node 24.14.1/npm 11.11.0 and PostgreSQL 17.11 are fixed. Local startup, repeated-up reuse, stopped-project refusal, SQL commit/error rollback, reset and clean startup were checked.
-- Claude created the bounded CI workflow; Codex reviewed it and corrected runtime findings. [Run 41829734342](https://github.com/dubzn/remitee-challenge/actions/runs/41829734342) succeeded on implementation commit 68e1e7a, including cleanup. Issues #1 and #2 were closed with evidence; #3-#7 remain open. See [implementation and review evidence](outputs/codex/2026-11-04-infrastructure.md). No business code or contract/API tests exist.
+- Claude created the bounded CI workflow; Codex reviewed it and corrected runtime findings. [Run 41829734342](https://github.com/dubzn/remitee-challenge/actions/runs/41829734342) succeeded on implementation commit 68e1e7a, including cleanup. Issues #1 and #2 were closed with evidence. See [implementation and review evidence](outputs/codex/2026-11-04-infrastructure.md). The subsequent approved contract slice is now implemented: 62 tests, both jobs successful in [run 41962697117](https://github.com/dubzn/remitee-challenge/actions/runs/41962697117), and #3 closed. See [contract evidence](outputs/codex/2026-11-05-contract-implementation.md). #4-#7 remain open; deployment/indexer/API remain later slices.
 - GitHub connector issue creation returned 403 (integration access); the CLI had no login. The existing authenticated browser session successfully created issues #1-#7; the final list showed all seven open.

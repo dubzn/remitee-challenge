@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: infrastructure implementation authorized; business specification remains under discussion. Updated: 2026-11-04. All authored documentation is in English.
+Status: infrastructure and approved contract core verified locally and in CI; later slices remain planned. Updated: 2026-11-05. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. Foundation and the Nov 5 approved contract core are implemented with local evidence; indexer/API/deployment remain later slices. Start with [local commands and verification](local-development.md).
+The intended outcome is one reviewable submission within one week. Foundation and the Nov 5 approved contract core are implemented with local and observed CI evidence; indexer/API/deployment remain later slices. Start with [local commands and verification](local-development.md).
 
 ## Start here
 
@@ -15,7 +15,7 @@ The intended outcome is one reviewable submission within one week. Foundation an
 7. [Confirmations, capacity, and emergency pause](safety-review.md): accepted observation/token boundaries, confirmation timeline, and the pause policy still under discussion. See [safety decisions](outputs/codex/2026-11-04-safety-decisions.md) for Codex's assessment of the new Claude review.
 8. [Contract flow diagrams](contract-flows.md): lifecycle, creation/funding sequence, token-exit checks, and expiry without a transaction. Start here to understand who actually triggers each payout.
 9. [Infrastructure-first block and ownership](infrastructure-plan.md): Docker foundation, baseline CI, seven linked GitHub issues and division between Codex and Claude before contracts. See the [Opus/xhigh pre-commit review disposition](outputs/codex/2026-11-04-preflight-decisions.md) for corrections and remaining decisions.
-10. [Contract core interface and storage](contract-design.md): proposed ABI/types/state, mapped SDD completion checks and the approval boundary before implementing Solidity. Pause/upgrade choices remain deferred.
+10. [Contract core interface and storage](contract-design.md): approved and implemented ABI/types/state, mapped SDD completion checks and verification evidence. Pause/upgrade choices remain deferred.
 
 ## Working agreement
 

@@ -37,7 +37,7 @@ npm run infra:up
 | Node / npm | 24.14.1 / 11.11.0 | Host and tools image; `.nvmrc`, engines and lockfile |
 | TypeScript | 5.9.3 | Locked dev dependency; native Node type stripping runs scripts, `tsc` checks them |
 | Foundry / Anvil | 1.4.1 | Pinned multi-architecture image; chain ID 31337, Cancun EVM |
-| Solidity | 0.8.30 | Pinned in `contracts/foundry.toml`; no source or contract tests yet |
+| Solidity | 0.8.30 | Pinned in `contracts/foundry.toml`; implemented core and 62 contract tests |
 | PostgreSQL | 17.11-alpine3.23 | Pinned multi-architecture image |
 | OpenZeppelin / forge-std | 5.7.0 / 1.16.2 | Git submodules pinned to commit IDs; Foundry lockfile records those revisions |
 
@@ -76,4 +76,4 @@ This foundation deliberately supports disposable sessions, not resumable chain a
 
 No application projection exists at this stage. Before storing/serving it, issue #4 must validate deployment anchor and checkpoint hashes at startup and every scan, and halt on mismatch. Chain ID and deterministic contract address alone do not prove identity. Do not reuse a future projection merely because today's connectivity probe succeeds; reset both datasets explicitly when starting a different deployment.
 
-Anvil contains public development accounts. Keep it local. The tools container has no Docker socket, cloud credentials, business signer or escrow funds. The CI foundation job proves only the checks above; AC1-AC12 remain unverified until their slices exist.
+Anvil contains public development accounts. Keep it local. The tools container has no Docker socket, cloud credentials, business signer or escrow funds. The foundation job proves its infrastructure checks; the separate contracts job verifies the approved AC1-AC5 core with 62 tests and compiled ABI checks. AC6-AC12 remain later slices.

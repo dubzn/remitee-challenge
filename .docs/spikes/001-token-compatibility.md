@@ -1,6 +1,6 @@
 # Spike 001: token compatibility and accounting
 
-Status: desk reviewed; proposed conclusion recorded in the SDD. No runtime verification. Original timebox: 25 minutes.
+Status: core policy implemented and exercised on Nov 5; [runtime evidence](../outputs/codex/2026-11-05-contract-implementation.md). Original desk-review timebox: 25 minutes.
 
 ## Question and source
 

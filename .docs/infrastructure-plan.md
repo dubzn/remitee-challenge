@@ -27,7 +27,7 @@ Keep workflow permissions minimal, use no secrets for the local test chain, and 
 | --- | --- | --- | --- |
 | Local Docker/toolchains/probes | Codex | Claude reviews proposed/runtime files; Codex executes checks | Clean startup, RPC/DB smoke, safe project-scoped cleanup |
 | Initial GitHub CI | Claude, bounded file-edit task after commands stabilize | Codex reviews full diff and runs/observes CI | CI invokes actual local checks and succeeds on the pushed SHA |
-| Escrow contract and Foundry tests, later | Codex owns contract/core tests; Claude owns bounded adversarial tests after ABI freeze | Codex executes all tests; Claude reviews contract/security independently | AC1-AC5; pause policy settled before code |
+| Escrow contract and Foundry tests | Codex owns contract/core tests; Claude owns bounded adversarial tests after ABI freeze | Codex executes all tests; Claude reviews contract/security independently | Approved Nov 5 core/AC1-AC5; pause/upgrades deferred by candidate |
 | PostgreSQL indexer and recovery tests, later | Codex | Claude reviews idempotency, concurrency and reorg handling | AC6-AC8 against real services |
 | Read API and derived time/filter tests, later | Codex | Claude reviews state/time and snapshot consistency | AC9-AC10 |
 | Full startup/deployment/demo and submission | Codex integrates; candidate explains | Claude final bounded review; Codex verifies | AC11-AC12 and all mandatory evidence |

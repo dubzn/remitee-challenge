@@ -116,3 +116,17 @@ Runner footer:
 > Claude usage remaining:
 > - Current session: 95% remaining · resets Nov 5 at 3:40am (America/Buenos_Aires)
 > - Current week (all models): 97% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)
+
+## Core adversarial tests and implementation review
+
+Date: 2026-11-05. Authorized opus/xhigh edit completed, exit 0, no stderr. Claude created only the two designated adversarial test/mock files: 35 candidate tests, and a core review with no blockers. Codex reviewed/formatted/integrated them and ran all 62 tests successfully, including the 27 core cases.
+
+- [Exact prompt](2026-11-05-contract-tests-prompt.md).
+- [Unmodified response/usage](2026-11-05-contract-tests-output.md).
+- [Codex evidence and disposition](../codex/2026-11-05-contract-implementation.md).
+
+Runner footer:
+
+> Claude usage remaining:
+> - Current session: 73% remaining · resets Nov 5 at 3:40am (America/Buenos_Aires)
+> - Current week (all models): 95% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)

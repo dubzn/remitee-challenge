@@ -2,7 +2,7 @@
 
 Status: infrastructure implementation authorized; business specification remains under discussion. Updated: 2026-11-04. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. The candidate authorized local infrastructure and CI on Nov 4. Escrow, indexer and API implementation remain later slices. Start with [local commands and verification](local-development.md).
+The intended outcome is one reviewable submission within one week. Foundation and the Nov 5 approved contract core are implemented with local evidence; indexer/API/deployment remain later slices. Start with [local commands and verification](local-development.md).
 
 ## Start here
 

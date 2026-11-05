@@ -1,6 +1,6 @@
 # Local foundation and verification
 
-Status: infrastructure slice only, Nov 4, 2026. Tracks [#1](https://github.com/dubzn/remitee-challenge/issues/1) and [#2](https://github.com/dubzn/remitee-challenge/issues/2). No escrow deployment, API, indexer, domain migrations or business test coverage exists yet.
+Infrastructure and contract-core commands, updated Nov 5, 2026. Foundation tracks [#1](https://github.com/dubzn/remitee-challenge/issues/1)/[#2](https://github.com/dubzn/remitee-challenge/issues/2); contract implementation tracks [#3](https://github.com/dubzn/remitee-challenge/issues/3). There is no deployed escrow, API, indexer or domain migration yet.
 
 ## Prerequisites and quick start
 
@@ -25,6 +25,7 @@ npm run infra:up
 | `npm run infra:reset` | Explicitly remove only this project's containers, network, chain session and DB volume. Both datasets are discarded; next up is fresh. |
 | `npm run typecheck` | Strict TypeScript checking; no Docker needed. |
 | `npm run check` | Typecheck plus real isolated foundation tests, including failure and cleanup. |
+| `npm run contracts:check` | Format/build/tests and compiled ABI checks in the same pinned Foundry image; no Anvil or DB services. |
 | `npm run db:sql -- db/migrations/<file.sql>` | Apply a reviewed SQL file atomically to the local DB with stop-on-error. No migrations exist yet. |
 
 `db:sql` is a thin PostgreSQL entry point, not a versioned migration runner: it records no history, does not auto-discover files, and does not make arbitrary SQL idempotent. It accepts only reviewed `.sql` files inside `db/migrations`. Files must contain transaction-compatible SQL without transaction-control statements or psql meta-commands; there is no SQL parser enforcing that convention. For these files a statement error rolls back and returns failure. An explicit `ROLLBACK` can instead exit successfully. Add schema/migration policy with the indexer issue; no CI migration coverage is claimed.
@@ -38,8 +39,11 @@ npm run infra:up
 | Foundry / Anvil | 1.4.1 | Pinned multi-architecture image; chain ID 31337, Cancun EVM |
 | Solidity | 0.8.30 | Pinned in `contracts/foundry.toml`; no source or contract tests yet |
 | PostgreSQL | 17.11-alpine3.23 | Pinned multi-architecture image |
+| OpenZeppelin / forge-std | 5.7.0 / 1.16.2 | Git submodules pinned to commit IDs; Foundry lockfile records those revisions |
 
 All three base images use immutable index digests, supporting both local arm64 and CI amd64. Node package versions and transitive integrity are in `package-lock.json`.
+
+Initialize contract dependencies after cloning: `git submodule update --init --depth 1`. The two top-level gitlinks are pinned, not moving branches. The contract check mounts source read-only, copies it into a disposable container's `/tmp`, runs format/build/tests and rejects empty/skipped/failing tests or an unexpected mutating ABI. It removes only its generated container, including on ordinary failures/timeouts. The compiler download requires network access on a fresh run. The optional native equivalent is `cd contracts`, then `forge fmt --check src test` and `forge test -vv` with Foundry 1.4.1. Native builds use ignored `contracts/out` and `contracts/cache`.
 
 Development endpoints are `http://127.0.0.1:8545` and `postgres://remitee:remitee_local_only@127.0.0.1:5432/remitee`. These are disposable local credentials. Inside Compose, services use `anvil:8545` and `postgres:5432`. Only `compose.local.yaml` publishes ports, always on loopback; tests never load that file. If a local port is occupied, stop the conflicting local service or adjust only that override.
 

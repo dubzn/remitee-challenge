@@ -8,7 +8,7 @@ One deployment manages many IDs. The challenge fixes actors, deadlines, outcomes
 
 ## Proposed public interface
 
-Illustrative Solidity inside Markdown; not a source file or compiled ABI. All action functions are nonpayable. `msg.sender` is the sender at creation; the beneficiary is the only other party specified by the caller.
+The approved shape below is now implemented in [IEscrow](../contracts/src/IEscrow.sol) and [Escrow](../contracts/src/Escrow.sol); tests and compiled ABI checks match it. All actions are nonpayable. `msg.sender` is sender at creation; the beneficiary is the only other party specified by the caller.
 
 ```solidity
 interface IEscrow {
@@ -80,7 +80,7 @@ uint256 private _lastEscrowId; // Initially zero; first successful ID is 1.
 mapping(uint256 => IEscrow.EscrowRecord) private _escrows;
 ```
 
-The two constants consume no persistent storage slots. The counter and mapping are the core's only top-level mutable variables. A reused standard persistent ReentrancyGuard contributes its own lock bookkeeping; it is not escrow business data. Its exact inheritance/layout and dependency version are finalized with implementation, not invented here.
+The constants consume no persistent slots. Counter/mapping are the core's only ordinary top-level mutable variables. Pinned OpenZeppelin 5.7.0 ReentrancyGuard contributes its separate namespaced lock. Actual compiled layout and verification are recorded in the [implementation evidence](outputs/codex/2026-11-05-contract-implementation.md); no proxy layout is frozen.
 
 Per-sender listing belongs to `GET /escrows?sender=...` over the indexed database, with filtering before pagination. The contract exposes lookup by ID, not a storage-enumeration API. A direct off-chain RPC consumer can also filter EscrowCreated logs by indexed sender, without iterating every ID. No per-sender array or mapping is added for this use case.
 
@@ -106,7 +106,7 @@ Calculate deadlines in uint256 and use checked conversion, such as SafeCast.toUi
 
 ## SDD completion checks
 
-The canonical [contract-slice checklist](sdd/escrow.md#contract-slice-completion-checklist) maps every objective to AC1-AC5 and evidence. All checks remain unchecked until actual tests/review exist. An independent design review validates the objectives, not their implementation.
+The canonical [checklist](sdd/escrow.md#contract-slice-completion-checklist) maps AC1-AC5 to [actual evidence](outputs/codex/2026-11-05-contract-implementation.md). Local verification passed; remote CI remains a separate observed gate.
 
 Once the candidate approves, Codex owns core implementation/tests and actual Foundry execution. Claude receives bounded adversarial cases and independent review after the interface/event signatures settle. The current foundation CI must then run the real contract suite; an empty forge run is not completion.
 

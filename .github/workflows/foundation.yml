@@ -1,6 +1,6 @@
 # Foundation only: strict TypeScript plus real, isolated Anvil/PostgreSQL smoke
-# and negative checks via the same `npm run check` used locally. No contract,
-# indexer or API suites exist yet; a green run does not verify AC1-AC12.
+# and negative checks via the same `npm run check` used locally. A separate job
+# runs real contract tests. Indexer/API and full application acceptance remain open.
 name: Foundation
 
 on:
@@ -15,6 +15,27 @@ defaults:
     shell: bash
 
 jobs:
+  contracts:
+    name: Contract format, build, tests and ABI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository and pinned contract dependencies
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          submodules: true
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Verify contracts without Anvil or PostgreSQL
+        timeout-minutes: 10
+        run: npm run contracts:check
+
   foundation:
     name: Foundation checks (typecheck, Anvil/PostgreSQL smoke)
     runs-on: ubuntu-24.04

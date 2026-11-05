@@ -100,3 +100,19 @@ Runner footer:
 > Claude usage remaining:
 > - Current session: 87% remaining · resets Nov 4 at 1:30pm (America/Buenos_Aires)
 > - Current week (all models): 97% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)
+
+## Core interface, storage and SDD objectives
+
+Date: 2026-11-04. Candidate-requested `opus` / `xhigh` read-only review completed successfully, exit code 0, no stderr. Verdict: **NEEDS_REVISION (small document changes only)**; the reviewer found the core proportional and proposed focused wording/checklist fixes. It did not approve implementation.
+
+- [Exact prompt](2026-11-04-contract-interface-prompt.md).
+- [Unmodified review](2026-11-04-contract-interface-review.md).
+- [Codex corrections and independent checks](../codex/2026-11-04-contract-interface-decisions.md).
+
+The revised interface/storage and C1-C10 checklist await candidate approval. No Solidity or contract tests were added; pause/upgrade decisions remain deferred. The initial source review included all PDF pages; Claude read pages 1-2 for this bounded consultation. No second Claude verdict after the corrections is claimed.
+
+Runner footer:
+
+> Claude usage remaining:
+> - Current session: 95% remaining · resets Nov 5 at 3:40am (America/Buenos_Aires)
+> - Current week (all models): 97% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)

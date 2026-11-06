@@ -1,6 +1,6 @@
 # Indexer design and provider options
 
-Date: 2026-11-06. Status: **Ponder 0.18.5 selected** after the [executed checkpoint/recovery follow-up](outputs/codex/2026-11-06-ponder-decision.md). Production integration and S2/AC6-AC8 remain pending. Refines the [canonical SDD](sdd/escrow.md), tracked in [#4](https://github.com/dubzn/remitee-challenge/issues/4); [PostgreSQL models](postgres-models.md) distinguish the selected design from the archived polling proposal.
+Date: 2026-11-06. Status: **Ponder 0.18.5 selected** after the [executed checkpoint/recovery follow-up](outputs/codex/2026-11-06-ponder-decision.md). Application integration is verified locally; remote CI and S3 remain pending. Refines the [canonical SDD](sdd/escrow.md), tracked in [#4](https://github.com/dubzn/remitee-challenge/issues/4); [PostgreSQL models](postgres-models.md) distinguish the selected design from the archived polling proposal.
 
 ## Existing plan and desired behavior
 
@@ -126,9 +126,9 @@ Testnet deployment remains optional and is not executed by this documentation ta
 
 - [x] Candidate authorized the Ponder PoC and an independent Opus/xhigh review; both outputs are recorded and experimental dependencies remain isolated.
 - [x] Select Ponder using the bounded application-checkpoint/recovery experiment; production integration is not yet accepted.
-- [ ] Implement engine-appropriate persistence and consistency checks. Use the [selected Ponder model](postgres-models.md); preserve framework ownership of internal progress.
-- [ ] Reprove duplicate/conflict, ordered replay, empty blocks, crash/restart and competing-writer behavior with the final adapter (AC6-AC7).
-- [ ] Reprove delay boundaries, pre-admission fork handling, canonical rollback within the recovery window, beyond-window read blocking, RPC failure and explicit replay with the final adapter (AC8).
+- [x] Implement engine-appropriate persistence and consistency checks. Use the [selected Ponder model](postgres-models.md); preserve framework ownership of internal progress.
+- [x] Reprove duplicate/conflict, ordered replay, empty blocks, crash/restart and competing-writer behavior with the final adapter (AC6-AC7).
+- [x] Reprove delay boundaries, pre-admission fork handling, canonical rollback within the recovery window, beyond-window read blocking, RPC failure and explicit replay with the final adapter (AC8).
 - [ ] Run the actual suite in CI before claiming the November 6 indexer block complete.
 
 Provider/framework capability statements were checked in primary documentation on Nov 6, 2026. The isolated Ponder proof and dependency installation are recorded separately; no provider subscription or throughput benchmark was performed. The recommendation is an engineering inference for one contract/five events and this delivery window.
@@ -151,3 +151,7 @@ This still writes directly to PostgreSQL. It does not make an HTTP request to th
 Idempotency is a persistence invariant, not a promise that events arrive once. Scope event identity to the validated deployment plus transaction hash and log index. The experiment uses one validated deployment per schema. Verify an existing identity's block hash, position and payload: an identical replay is a no-op; conflicting content aborts instead of silently overwriting state. Apply an escrow transition only when its journal event is new. A terminal escrow must never be reset by replaying creation.
 
 On a crash before commit, the journal, projection and progress roll back together. After commit, restart resumes from durable engine progress; duplicate checks remain a second defense. The single writer and primary key prevent racing inserts; neither a standalone conflict-ignore statement nor in-memory deduplication is sufficient. There is no independently committed “recorded but not projected” state, retry queue or cross-database exactly-once guarantee. A canonical reorg is reconciled by the selected engine policy, not mistaken for a harmless duplicate.
+
+## Application integration status
+
+The runtime is integrated under apps/indexer with [commands](indexer-runtime.md) and [local evidence](outputs/codex/2026-11-06-indexer-integration.md). Remote CI acceptance and the S3 API remain separate gates. The original experiment is retained; it is not the application entrypoint.

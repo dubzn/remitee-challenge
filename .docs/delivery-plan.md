@@ -1,5 +1,7 @@
 # One-week delivery plan
 
+Execution status: [progress and next slice](progress.md). This document retains the effort budget, calendar and submission gates.
+
 Planning date: Tuesday, November 3, 2026. Candidate availability: 5-6 effective hours per day, including weekends. Candidate confirmed Foundry + TypeScript familiarity. This remains an estimate pending spike outcomes and integration evidence.
 
 ## Recommendation

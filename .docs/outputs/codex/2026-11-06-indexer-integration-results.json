@@ -1,0 +1,105 @@
+[
+  {
+    "name": "local deploy CLI and validated reuse",
+    "details": {
+      "distinctDeployment": true,
+      "secondRunNoTransaction": true
+    }
+  },
+  {
+    "name": "history, all outcomes, uint256 max and successful transaction traces",
+    "details": {
+      "escrows": 5,
+      "events": 9,
+      "amount": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "traceHashes": true
+    }
+  },
+  {
+    "name": "N-1/N/N+1 admission and empty checkpoint",
+    "details": {
+      "delay": 2,
+      "visibleAtExtraBlocks": [
+        false,
+        false,
+        true,
+        true
+      ],
+      "events": 10
+    }
+  },
+  {
+    "name": "same-build restart and offline catch-up",
+    "details": {
+      "escrows": 7,
+      "events": 11
+    }
+  },
+  {
+    "name": "physical transaction interruption and committed restart",
+    "details": {
+      "partial": {
+        "events": 0,
+        "escrows": 0,
+        "checkpoint": "27"
+      },
+      "escrows": 8,
+      "events": 12
+    }
+  },
+  {
+    "name": "one framework writer",
+    "details": {
+      "events": 12
+    }
+  },
+  {
+    "name": "RPC loss blocks data and health",
+    "details": {
+      "recovered": true
+    }
+  },
+  {
+    "name": "within-window canonical rollback",
+    "details": {
+      "samples": 80,
+      "windowSeconds": 180,
+      "orphanAbsent": true
+    }
+  },
+  {
+    "name": "beyond-window fail-closed and restart",
+    "details": {
+      "rounds": 112,
+      "durationMs": 60000,
+      "restartExit": 1
+    }
+  },
+  {
+    "name": "explicit fresh-schema replay",
+    "details": {
+      "escrows": 8,
+      "events": 14
+    }
+  },
+  {
+    "name": "malformed duplicate log response refused",
+    "details": {
+      "existingDataPreserved": true,
+      "duplicateResponses": 4
+    }
+  },
+  {
+    "name": "scope, replay, code and chain-reset identity refusal",
+    "details": {
+      "oldDataPreserved": true
+    }
+  },
+  {
+    "name": "S2 local application acceptance",
+    "details": {
+      "result": "pass",
+      "scope": "S3 API and observed remote CI acceptance remain separate"
+    }
+  }
+]

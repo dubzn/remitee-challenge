@@ -51,9 +51,9 @@ The proof killed the process after append but before projection: neither event n
 
 The read adapter obtains projection and checkpoint in one SQL statement or repeatable-read read-only transaction. Then it checks current deployment/canonical hash against RPC. Public data and health return 503 if verification fails. A canonical older prefix is permitted with explicit progress/backlog; native /ready does not establish canonical application state. Beyond-window recovery requires explicit validated replay; within-window rollback is managed by Ponder.
 
-## Remaining production work
+## Remaining application acceptance
 
-Promote the selected schema and port/adapter to the application, preserve actor and successful-transaction trace fields, add required query indexes after defining actual filters, prove full numeric/trace/query behavior, expose public health and run acceptance in CI. Only the isolated experiment has created these tables so far. Keep a separate read query adapter; the existing pg dependency can serve reads without competing with the engine writer. No production migration is claimed.
+The application schema/adapter and trace fields are integrated and locally verified. Required public query behavior/index plans, full S3 semantics and observed remote indexer CI remain pending. See the current integration section below and its evidence. The following polling proposal is retained only as an archived alternative.
 
 ## Archived polling alternative
 
@@ -206,3 +206,7 @@ The existing `db:sql` command applies a reviewed file atomically but is not a ve
 Recovery preserves halt/unready until configuration is validated. Under the same writer lock, explicitly clear this deployment's projection/journal and reset its cursor for replay; never automatically wipe data after a timeout or reuse rows for another deployment. Rebuild from canonical RPC history. Separate databases for local/testnet and parallel test workers remain the easiest operational boundary.
 
 Before calling these models implemented, prove on real PostgreSQL: exact uint256/uint64 round trips; bounds and NULL/FK constraints; duplicate-versus-conflict behavior; atomic multi-event and empty-range commits; rollback/crash/restart; stale/overlap rejection; second-writer exclusion; filter/snapshot consistency; and validated replay. AC6-AC8 remain unverified today. This production schema remains unapplied. The separate PoC created and removed isolated experimental tables; that is not production migration evidence.
+
+## Integrated application schema
+
+apps/indexer/ponder.schema.ts implements the three tables. Checkpoint adds scope_key for validated descriptor/version/policy; journal retains actor, transaction_index and raw topics/data; escrows adds creation/resolution transaction/block/hash references. No automatic FK is claimed. [Evidence](outputs/codex/2026-11-06-indexer-integration.md) verifies uint256 max, actual writes/restarts and snapshot reads with a startup floor. Only Ponder writes; the query pool uses read-only transactions. Final API filters and observed remote CI remain pending.

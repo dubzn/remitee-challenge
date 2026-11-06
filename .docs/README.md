@@ -6,6 +6,8 @@ The intended outcome is one reviewable submission within one week. Foundation an
 
 ## Start here
 
+[Current progress and next slice](progress.md): block status, evidence and remaining work.
+
 1. [Source review and role alignment](references.md): what the challenge actually requires and how the JD informs quality.
 2. [Escrow specification and architecture](sdd/escrow.md): the proposed behavioral contract, boundaries, acceptance criteria, and work slices.
 3. [Delivery plan](delivery-plan.md): effort range, calendar, cut rules, and submission gate.
@@ -19,6 +21,9 @@ The intended outcome is one reviewable submission within one week. Foundation an
 
 11. [Indexer design and provider options](indexer-design.md): **Ponder selected** after the [concrete recovery/idempotency proof](outputs/codex/2026-11-06-ponder-decision.md). Production integration remains pending.
 12. [PostgreSQL models](postgres-models.md): relationship diagram, column types, keys, indexes, atomic writes and schema/replay policy for the proposed three tables.
+
+13. [Integrated Ponder runtime](indexer-runtime.md): commands, configuration, recovery and verification.
+14. [CLI wallets/testnet](testnet-wallet.md): two accounts, Foundry signing boundary and time limitations.
 
 ## Working agreement
 

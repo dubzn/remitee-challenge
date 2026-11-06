@@ -28,6 +28,8 @@ Use configurable delay, now proposed as 2 additional blocks in the local demo an
 
 Record one exact recovery policy in the SDD, with evidence to be implemented later. A confirmation delay mitigates shallow forks; it does not guarantee finality or replace honest mismatch handling. Full replay is acceptable for this small exercise; generalized common-ancestor rollback is outside the timebox.
 
+Provider/model follow-up, Nov 6: see [dedicated design and existing-engine comparison](../indexer-design.md), [PostgreSQL models](../postgres-models.md) and [source-review output](../outputs/codex/2026-11-06-indexer-and-models.md). This expands the proposal; AC6-AC8 remain unverified.
+
 ## Desk review result
 
 Adopt one polling worker, atomic bounded-range commits, retained event journal, and one halt/unready path. Use explicit validated reset/replay for recovery. This simplifies the initial per-block/dual-watcher proposal and avoids the unsafe interpretation of automatic replay after a deployment identity change. Keep actual-DB duplicate, rollback, restart, ordering, empty-range, and mismatch tests in S2.

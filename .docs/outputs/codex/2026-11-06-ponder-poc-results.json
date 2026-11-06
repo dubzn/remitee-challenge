@@ -1,0 +1,174 @@
+{
+  "date": "2026-11-06",
+  "versions": {
+    "node": "24.14.1",
+    "npm": "11.11.0",
+    "ponder": "0.18.5",
+    "viem": "2.57.16",
+    "hono": "4.13.16",
+    "pg": "8.23.1",
+    "postgres": "17.11",
+    "foundry": "1.4.1",
+    "solidity": "0.8.30"
+  },
+  "command": "npm run poc:ponder",
+  "installation": "npm --prefix experiments/ponder-poc ci",
+  "exitCode": 0,
+  "reproducedInTwoIndependentIsolatedRuns": true,
+  "observations": [
+    {
+      "name": "P1 history and exact uint256",
+      "result": "pass",
+      "details": {
+        "escrows": 5,
+        "events": 9,
+        "amount": "1606938044258990275541962092341162602522202993782792835301376",
+        "statuses": [
+          "Released",
+          "CancelledBySender",
+          "Rejected",
+          "Expired",
+          "Pending"
+        ]
+      }
+    },
+    {
+      "name": "P2 same-build restart and catch-up",
+      "result": "pass",
+      "details": {
+        "escrows": 7,
+        "events": 11
+      }
+    },
+    {
+      "name": "P3 kill after journal, before projection",
+      "result": "pass",
+      "details": {
+        "duringHandler": {
+          "events": 0,
+          "escrows": 0
+        },
+        "recoveredEscrows": 8,
+        "recoveredEvents": 12
+      }
+    },
+    {
+      "name": "P4 competing writer",
+      "result": "pass",
+      "details": {
+        "secondReady": false,
+        "journalUnchanged": true
+      }
+    },
+    {
+      "name": "P6 additional-block admission",
+      "result": "integration-gap",
+      "details": {
+        "extraBlocksAtVisibility": "0",
+        "publiclyVisible": true,
+        "proposedDelay": 2
+      }
+    },
+    {
+      "name": "P6 RPC outage readiness",
+      "result": "integration-gap",
+      "details": {
+        "nativeReadyStatus": 200,
+        "rejectedRequests": 56
+      }
+    },
+    {
+      "name": "P5 shallow fork",
+      "result": "pass",
+      "details": {
+        "replacedBlock": "19",
+        "orphanReleaseRemoved": true,
+        "finalStatus": "Rejected"
+      }
+    },
+    {
+      "name": "P5 same-address chain reset",
+      "result": "pass",
+      "details": {
+        "readyStatus": null,
+        "rowCount": 10,
+        "replacementCorrect": false,
+        "exitCode": 1
+      }
+    },
+    {
+      "name": "G1 delayed transport admission",
+      "result": "pass",
+      "details": {
+        "extraBlocks": [
+          0,
+          1,
+          2
+        ],
+        "visible": [
+          false,
+          false,
+          true
+        ],
+        "amount": "777"
+      }
+    },
+    {
+      "name": "G2 public read during outage",
+      "result": "pass",
+      "details": {
+        "graphqlStatus": 503
+      }
+    },
+    {
+      "name": "G3 pre-admission fork",
+      "result": "pass",
+      "details": {
+        "provisionalOutcomeNeverProjected": true,
+        "canonicalOutcome": "Released"
+      }
+    },
+    {
+      "name": "G4 admitted mismatch and public reads",
+      "result": "incompatible",
+      "details": {
+        "nativeReady": 200,
+        "graphqlHttp": 200,
+        "publicOutcome": "Released",
+        "canonicalOutcome": "Rejected",
+        "verifiedSameHeightDifferentHash": true
+      }
+    },
+    {
+      "name": "G5 validated replay",
+      "result": "pass",
+      "details": {
+        "status": "Rejected",
+        "events": 2,
+        "orphanAbsent": true
+      }
+    },
+    {
+      "name": "Decision inputs",
+      "result": "retain-rpc-polling",
+      "details": {
+        "nativeGaps": [
+          "P6 additional-block admission",
+          "P6 RPC outage readiness",
+          "G4 admitted mismatch and public reads"
+        ],
+        "adapter": "delayed read transport + identity/readiness guard; no second cursor or writer",
+        "scope": "PoC only; not full AC6-AC8 evidence"
+      }
+    }
+  ],
+  "frameworkLog": {
+    "level": 40,
+    "msg": "Encountered unrecoverable reorg",
+    "chain": "anvil",
+    "chain_id": 31337,
+    "finalized_block": 8
+  },
+  "decision": "Retain the RPC polling design; do not adopt this Ponder integration for the challenge.",
+  "scope": "Local isolated PoC only; production AC6-AC8 are still unverified."
+}

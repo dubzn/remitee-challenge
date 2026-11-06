@@ -128,6 +128,8 @@ The chain owns outcomes and balances. PostgreSQL is a rebuildable projection. Th
 
 ### Event processing boundary
 
+Detailed proposals: [worker/provider alternatives](../indexer-design.md) and [PostgreSQL models](../postgres-models.md). Candidate authorized a bounded Ponder trial with polling fallback. The [executed PoC](../outputs/codex/2026-11-06-ponder-poc.md) found a public-read inconsistency after an admitted reorg; retain this polling design. The PoC does not verify production AC6-AC8.
+
 One ordered HTTP polling worker observes the head and scans bounded block ranges from the deployment block through eligible head `latest - confirmationDelay`. This polling subscription to contract logs provides both live observation and catch-up; no second watcher, websocket path, or concurrent writer is needed. Poll even when the head is unchanged so RPC health is observed independently of block production.
 
 One writer is a workload-based starting assumption, not a benchmark derived from Ethereum's block cadence. Observe range duration, event volume, RPC/DB timings and `max(0, eligibleHead - indexedThrough)` backlog. Bounded concurrent RPC prefetch is a future response to measured fetch bottlenecks; preserve one ordered commit coordinator and never skip a gap in the checkpoint.

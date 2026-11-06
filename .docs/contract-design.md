@@ -1,12 +1,12 @@
-# Escrow core interface and storage proposal
+# Escrow core interface and storage
 
-Date: 2026-11-04. Candidate approved committing this core and starting implementation on 2026-11-05. This document records the approved interface/storage and refines SDD AC1-AC5. Pause/upgrade authority remains deferred. See [review disposition](outputs/codex/2026-11-04-contract-interface-decisions.md).
+Date: 2026-11-04. Candidate approved committing this core and starting implementation on 2026-11-05. This document records the approved interface/storage and refines SDD AC1-AC5. The November 5 core milestone is complete; emergency pause and upgradeability are future evaluations in [#8](https://github.com/dubzn/remitee-challenge/issues/8) and [#9](https://github.com/dubzn/remitee-challenge/issues/9). See [review disposition](outputs/codex/2026-11-04-contract-interface-decisions.md).
 
 ## Scope and approval boundary
 
-One deployment manages many IDs. The challenge fixes actors, deadlines, outcomes, required event names and an ID getter. Function names, parameter order, error names, integer widths and storage layout below are design proposals. This document does not approve pause, an owner, a proxy, an initializer or an upgrade mechanism. They may change deployment/inheritance/storage decisions and require a separate review before adopting a final deployment design.
+One deployment manages many IDs. The challenge fixes actors, deadlines, outcomes, required event names and an ID getter. Function names, parameter order, errors, integer widths and storage below describe the approved implementation. This challenge uses the current direct, non-upgradeable contract without pause or privileged fund paths. Future alternatives require a separate authority/deployment review; their evaluation does not block this completed core.
 
-## Proposed public interface
+## Approved public interface
 
 The approved shape below is now implemented in [IEscrow](../contracts/src/IEscrow.sol) and [Escrow](../contracts/src/Escrow.sol); tests and compiled ABI checks match it. All actions are nonpayable. `msg.sender` is sender at creation; the beneficiary is the only other party specified by the caller.
 
@@ -70,7 +70,7 @@ Cancellation, acceptance, rejection and recovery take only the ID. The stored to
 
 Domain errors do not exhaust possible reverts: the token, SafeERC20, the reentrancy guard and checked timestamp conversion can also revert. Token revert data can be propagated and is controlled by that external token; it may even imitate an escrow error. A matching selector alone does not authenticate its origin. Test domain errors before external calls with controlled fixtures; pin library errors when the dependency is selected. Error precedence for simultaneous invalid conditions is not yet a public guarantee.
 
-## Proposed state variables
+## Implemented state variables
 
 ```solidity
 uint256 public constant CANCELLATION_WINDOW = 2 hours;
@@ -95,20 +95,20 @@ Per-sender listing belongs to `GET /escrows?sender=...` over the indexed databas
 
 With contiguous successful IDs and no deletion, `id == 0 || id > _lastEscrowId` means missing. Getter and actions must check existence before treating the default mapping value as Pending. An ID is the mapping key, not another struct field. Events handle enumeration/filtering; no on-chain array, party index, withdrawable-balance mapping or redundant total-liability mapping is needed.
 
-Calculate deadlines in uint256 and use checked conversion, such as SafeCast.toUint64, for every narrowing before external funding. A bare uint64 cast can truncate. Three uint64 timestamps and the enum naturally share one slot with this field order; the struct is expected to use five value slots. Keep uint64 as the current proposal. This is an inference from Solidity layout rules, not a measured gas claim or a frozen proxy layout; actual layout inspection is informational for this core. uint256 timestamps are a valid alternative, not another requirement.
+Calculate deadlines in uint256 and use checked conversion, such as SafeCast.toUint64, for every narrowing before external funding. A bare uint64 cast can truncate. Three uint64 timestamps and the enum naturally share one slot with this field order; the compiled struct uses five value slots. The implemented timestamps remain uint64. This is observed layout evidence, not a measured gas claim or a frozen proxy layout; inspection is informational for this core. uint256 timestamps are a valid alternative, not another requirement.
 
 ## Core execution rules
 
 1. Creation is guarded throughout: validate inputs/timestamps, read the prior token balance, transfer, read the new balance and check the exact received delta, then record a funded Pending escrow, advance the ID and emit creation. No provisional record is exposed during token callbacks. A failure reverts all effects, except any separate prior approval transaction.
 2. Each resolution is guarded, checks existence/Pending/caller/time, sets the terminal state, transfers to the fixed recipient and emits its one resolution event. Transfer failure restores Pending and all transaction-local effects.
-3. Supported tokens are balance-preserving standard/no-return ERC-20s. False-return transfers fail. Fee/rebasing/blacklist/malicious-economics guarantees, permit and a whitelist are outside this core. Zero/code-less token rejection and beneficiary equal to this contract are explicit proposed extra validations.
+3. Supported tokens are balance-preserving standard/no-return ERC-20s. False-return transfers fail. Fee/rebasing/blacklist/malicious-economics guarantees, permit and a whitelist are outside this core. Zero/self/code-less token rejection and beneficiary equal to this contract are implemented extra validations.
 4. Multiple IDs share token balances. Representative tests check that, under supported semantics, balances cover Pending liabilities; these examples are not a universal proof. Fixing the token per ID and guarding every mutating entry point prevents an escrow action from redirecting another ID to a different asset. A hostile token can still lie about or strand the backing of its own escrows; a callback test against a second supported token checks contract-level cross-token isolation. Donations may make balances larger; they are not credited to an escrow or claimable through a new rescue method.
 
 ## SDD completion checks
 
 The canonical [checklist](sdd/escrow.md#contract-slice-completion-checklist) maps AC1-AC5 to [actual evidence](outputs/codex/2026-11-05-contract-implementation.md). Local verification and both jobs of [CI run 41962697117](https://github.com/dubzn/remitee-challenge/actions/runs/41962697117) passed; C1-C10 are complete.
 
-Once the candidate approves, Codex owns core implementation/tests and actual Foundry execution. Claude receives bounded adversarial cases and independent review after the interface/event signatures settle. The current foundation CI must then run the real contract suite; an empty forge run is not completion.
+Codex implemented the core/tests and executed verification. Claude supplied bounded adversarial cases and an independent review. Both actual CI jobs passed. See the [milestone closeout](outputs/codex/2026-11-06-contract-closeout.md); no contract implementation remains in this slice.
 
 ## Primary references and limits
 

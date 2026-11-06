@@ -1,10 +1,10 @@
 # ERC-20 escrow challenge
 
-Status: infrastructure and approved contract core verified locally and in CI; indexer/API remain planned. Created: 2026-11-03. Updated: 2026-11-05.
+Status: infrastructure and approved contract core verified locally and in CI; indexer/API remain planned. Created: 2026-11-03. Updated: 2026-11-06.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
 Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI and the approved contract core are implemented; API/indexer implementation remains a later slice.
-Current contract step: the candidate approved committing the [core interface/storage](../contract-design.md) and starting its implementation on 2026-11-05. Pause/upgrade decisions remain deferred and are not selected by this approval.
-Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause remains an open authority decision.
+Contract milestone: the approved [core interface/storage](../contract-design.md) is implemented and C1-C10 are complete. On Nov 6 the candidate requested closing the Nov 5 block and tracking alternatives as future improvements; see [closeout](../outputs/codex/2026-11-06-contract-closeout.md).
+Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause is now a future evaluation in [#8](https://github.com/dubzn/remitee-challenge/issues/8), outside this challenge deliverable.
 Visual walkthrough: [contract flow diagrams](../contract-flows.md). Every payout requires a new authorized resolution transaction; time alone does not execute or transfer tokens.
 Completed foundation/core: [implementation blocks, CI and ownership](../infrastructure-plan.md). Unit contract tests run with Foundry without requiring Docker; the reproducible wrapper also runs them in the pinned image.
 
@@ -16,7 +16,7 @@ The candidate must be able to explain the implementation and its limitations in 
 
 ## Scope
 
-- One deployment managing multiple escrow IDs and tokens; no contract deployment per operation. Direct non-upgradeable deployment is the earlier baseline proposal, with the pause/upgrade choice now explicitly deferred by the candidate until after core interface review.
+- One deployment managing multiple escrow IDs and tokens; no contract deployment per operation. The challenge uses the implemented direct, non-upgradeable contract without pause. Alternative pause/upgrade designs are future evaluations in [#8](https://github.com/dubzn/remitee-challenge/issues/8)/[#9](https://github.com/dubzn/remitee-challenge/issues/9).
 - Four resolution paths: sender cancellation, beneficiary acceptance, beneficiary rejection, and sender recovery after expiry.
 - Node.js/TypeScript API with a durable event indexer and PostgreSQL projection.
 - Three required GET endpoints; tests; one-command local environment; deterministic demo; README; AI prompt/output record.
@@ -24,7 +24,7 @@ The candidate must be able to explain the implementation and its limitations in 
 
 ## Non-goals
 
-Frontend, production/mainnet deployment, mandatory testnet deployment, transaction signing by the API, custody, owner recovery powers, cross-chain settlement, permit, fee-on-transfer support, token allowlist, arbitration/disputes, partial payouts, dashboard, failed-transaction observer, separate queue broker, webhooks, Kubernetes, cloud infrastructure, or a generalized indexing framework. Pause/proxy/upgrade authority is a deferred discussion, not selected implementation scope; any selection must revisit authority, initialization, layout and delivery cost.
+Frontend, production/mainnet deployment, mandatory testnet deployment, transaction signing by the API, custody, owner recovery powers, cross-chain settlement, permit, fee-on-transfer support, token allowlist, arbitration/disputes, partial payouts, dashboard, failed-transaction observer, separate queue broker, webhooks, Kubernetes, cloud infrastructure, or a generalized indexing framework. Pause/proxy/upgrade authority is future improvement work in #8/#9, outside this deliverable and not a contract completion gate. Any later selection must revisit authority, initialization, layout and cost.
 
 ## Observable behavior
 
@@ -85,7 +85,7 @@ These are proposals, not additional requirements from Remitee.
 | --- | --- | --- |
 | Stack | Foundry/Anvil; Solidity 0.8.x; OpenZeppelin utilities; Node.js/TypeScript, viem, Fastify, PostgreSQL with node-postgres. | Candidate selected PostgreSQL and confirmed Foundry + TypeScript familiarity. Pin compatible versions and include real PostgreSQL setup/migrations/tests. |
 | Reuse | Prefer compatible maintained primitives or an exact-fit escrow over unnecessary custom mechanisms. Current recommendation is a minimal domain contract on SafeERC20/ReentrancyGuard. | Reviewed OpenZeppelin Escrow/VestingWallet are not drop-in matches; a wrapper still needs actor/time/token correctness and adversarial tests. See design review. |
-| Authority, proposed baseline | Recommend no owner, pause, upgrade, or rescue method; API independently read-only. Pause/gateway remains under discussion. | The challenge forbids privileged fund movement, not the existence of an owner or a pause mechanism. No-pause is our design proposal; interference with actor/time availability needs explicit assessment. |
+| Authority, challenge baseline | Current direct contract has no owner, pause, upgrade or rescue method; API independently read-only. #8/#9 evaluate future alternatives. | The challenge forbids privileged fund movement, not an owner or pause mechanism explicitly. The chosen scope preserves actor/time availability; future authority changes need separate assessment. |
 | Token policy, candidate-confirmed | Simple balance-preserving ERC-20 behavior plus mandatory no-return compatibility; reject deposits with a received-amount mismatch. | Per-escrow token choice remains; no fee/rebase/allowlist extension. Demo may use a simple mock, but required no-return tests remain. |
 | Beneficiary validation | Reject zero, sender, and the escrow contract itself. | The first two are required; the third is a proposed extra guard against releasing funds back into the escrow with no withdrawal path. |
 | Time source | Latest successfully observed canonical head timestamp, cached by the indexer, with source metadata in API/health. | Agrees with local EVM time travel. Host wall-clock time is not authoritative; never substitute it silently if RPC observation fails. |

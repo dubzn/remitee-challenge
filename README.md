@@ -1,6 +1,6 @@
 # Remitee escrow challenge
 
-The escrow core, contract tests and local infrastructure are implemented. Deployment, the indexer, API and full lifecycle demo remain later slices. Pause and upgrades are deferred.
+The escrow core, contract tests and local infrastructure are implemented. Deployment, the indexer, API and full lifecycle demo remain later slices. The November 5 contract milestone is closed. Emergency pause and upgradeability are possible future improvements in [#8](https://github.com/dubzn/remitee-challenge/issues/8) and [#9](https://github.com/dubzn/remitee-challenge/issues/9), outside this deliverable.
 
 - [Local setup, commands and verification](.docs/local-development.md)
 - [Specification and planning index](.docs/README.md)

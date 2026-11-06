@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: infrastructure and approved contract core verified locally and in CI; later slices remain planned. Updated: 2026-11-05. All authored documentation is in English.
+Status: infrastructure and approved contract core verified locally and in CI; later slices remain planned. Updated: 2026-11-06. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. Foundation and the Nov 5 approved contract core are implemented with local and observed CI evidence; indexer/API/deployment remain later slices. Start with [local commands and verification](local-development.md).
+The intended outcome is one reviewable submission within one week. Foundation and the Nov 5 approved contract core are implemented with local and observed CI evidence; indexer/API/deployment remain later slices. Start with [local commands and verification](local-development.md). The November 5 contract milestone is [closed with evidence](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrade alternatives are future improvements, not completion gates.
 
 ## Start here
 
@@ -12,10 +12,10 @@ The intended outcome is one reviewable submission within one week. Foundation an
 4. [Spikes](spikes/README.md): bounded questions to resolve before implementation.
 5. [Codex analysis](outputs/codex/2026-11-03-analysis.md), [Claude review](outputs/claude/2026-11-03-review.md), and [review disposition](outputs/codex/2026-11-03-review-disposition.md): separate contributions, retained prompt outputs, and the decisions taken after independent review.
 6. [Architecture feedback and worked examples](design-review.md): candidate questions, PostgreSQL, reuse assessment, crash/reorg examples, and a proposed API response. See [feedback decisions](outputs/codex/2026-11-03-feedback-decisions.md) for the second review's disposition. Earlier outputs retain the SQLite proposal as historical evidence; the current SDD selects PostgreSQL.
-7. [Confirmations, capacity, and emergency pause](safety-review.md): accepted observation/token boundaries, confirmation timeline, and the pause policy still under discussion. See [safety decisions](outputs/codex/2026-11-04-safety-decisions.md) for Codex's assessment of the new Claude review.
+7. [Confirmations, capacity, and emergency pause](safety-review.md): accepted observation/token boundaries, confirmation timeline, and the pause alternatives now tracked outside the deliverable. See [safety decisions](outputs/codex/2026-11-04-safety-decisions.md) for Codex's assessment of the new Claude review.
 8. [Contract flow diagrams](contract-flows.md): lifecycle, creation/funding sequence, token-exit checks, and expiry without a transaction. Start here to understand who actually triggers each payout.
 9. [Infrastructure-first block and ownership](infrastructure-plan.md): Docker foundation, baseline CI, seven linked GitHub issues and division between Codex and Claude before contracts. See the [Opus/xhigh pre-commit review disposition](outputs/codex/2026-11-04-preflight-decisions.md) for corrections and remaining decisions.
-10. [Contract core interface and storage](contract-design.md): approved and implemented ABI/types/state, mapped SDD completion checks and verification evidence. Pause/upgrade choices remain deferred.
+10. [Contract core interface and storage](contract-design.md): approved and implemented ABI/types/state, mapped SDD completion checks and verification evidence. Pause/upgrade alternatives are future issues [#8](https://github.com/dubzn/remitee-challenge/issues/8)/[#9](https://github.com/dubzn/remitee-challenge/issues/9).
 
 ## Working agreement
 

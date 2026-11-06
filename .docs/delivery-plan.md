@@ -41,6 +41,8 @@ Claude's original 25-36 estimate assumed the earlier stack. PostgreSQL/read-mode
 | Sun Nov 8 | Feature freeze and submission rehearsal | Fresh startup succeeds; README and AI logs match behavior; candidate explanation rehearsed. |
 | Mon Nov 9 | Buffer and delivery | Only fixes and final checks; share repository when authorized. |
 
+The November 5 contract milestone is complete: C1-C10, 62 passing tests, independent review and observed green CI. Nov 6 closeout keeps the current contract unchanged and moves pause/upgrade alternatives to future [#8](https://github.com/dubzn/remitee-challenge/issues/8)/[#9](https://github.com/dubzn/remitee-challenge/issues/9), outside the submission gates. See [closeout evidence](outputs/codex/2026-11-06-contract-closeout.md). Indexer/API/integration remain pending.
+
 The functional-core checkpoint moves from Friday to Saturday; the submission target does not move. Do not start optional work after Saturday. If mandatory slices slip, remove all optional additions and report the specific acceptance risk; do not silently assume extra candidate hours.
 
 ## Scope cuts
@@ -62,4 +64,4 @@ Follow-up on Nov 4: the 32-44 hour envelope does not include a gateway/pauser, p
 - Repository access is confirmed; commits are focused; temporary data, generated artifacts, secrets, and local credentials are excluded.
 - AI prompts and substantive outputs are retained, with adopted/rejected advice explained. Candidate can defend the result.
 
-The candidate authorized publishing planning, creating issues, and subsequently implementing local infrastructure/CI on Nov 4. See [foundation commands/evidence](local-development.md). This does not complete business acceptance or authorize the contract slice.
+The candidate authorized publishing planning, creating issues, and subsequently implementing local infrastructure/CI on Nov 4. See [foundation commands/evidence](local-development.md). The candidate subsequently authorized the contract core on Nov 5; it is implemented and verified. Full business acceptance still requires the later indexer/API/integration slices.

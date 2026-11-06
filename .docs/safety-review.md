@@ -2,6 +2,8 @@
 
 Date: 2026-11-04. Planning discussion, not implemented behavior. Supplements the [SDD](sdd/escrow.md) and [worked examples](design-review.md).
 
+Current disposition, Nov 6: the contract milestone is closed with the implemented direct, non-upgradeable core and no pause. [#8](https://github.com/dubzn/remitee-challenge/issues/8) and [#9](https://github.com/dubzn/remitee-challenge/issues/9) track future evaluations outside this deliverable. The trade-offs below remain design context, not outstanding requirements for the completed core.
+
 ## Confirmed scope
 
 - AC6 covers observation and traceability, not wallet execution, transaction submission, or automatic resubmission.
@@ -64,6 +66,6 @@ A pause does not repair an unknown bug in a non-upgradeable contract. Unpause, c
 
 ## Current recommendation and open decision
 
-Keep the exact challenge behavior as the baseline while the candidate chooses an emergency policy. Do not add a gateway, pauser or migration mechanism silently. If a circuit breaker is selected, first state its threat, controlled functions, who may pause/unpause, effect on each party's rights and deadlines, and which exits remain callable. For this single deployment, an in-contract policy is the smallest option to evaluate.
+Keep the implemented challenge behavior as the baseline. Future issue #8 can evaluate an emergency policy after this deliverable. Do not add a gateway, pauser or migration mechanism silently. If a circuit breaker is selected, first state its threat, controlled functions, who may pause/unpause, effect on each party's rights and deadlines, and which exits remain callable. For this single deployment, an in-contract policy is the smallest option to evaluate.
 
-The open question is whether preserving every required action or adding a privileged incident response exception takes priority. Creation-only pause is the smallest extension, but it is not an answer to every existing-funds exploit. Any selected pause changes acceptance criteria and needs a scoped re-estimate before coding. No parallel fetcher, provisional store, or pause implementation is included in the current delivery budget.
+Future evaluation must decide whether preserving every required action or adding a privileged incident response exception takes priority. Creation-only pause is the smallest extension, but it is not an answer to every existing-funds exploit. Any selected pause changes acceptance criteria and needs a scoped re-estimate before coding. No parallel fetcher, provisional store, or pause implementation is included in the current delivery budget.

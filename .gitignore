@@ -13,3 +13,6 @@ contracts/broadcast/
 experiments/ponder-poc/.ponder/
 experiments/ponder-poc/generated/
 experiments/ponder-poc/ponder-env.d.ts
+apps/indexer/.ponder/
+apps/indexer/generated/
+apps/indexer/ponder-env.d.ts

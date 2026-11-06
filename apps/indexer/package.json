@@ -1,0 +1,20 @@
+{
+  "name": "@remitee/indexer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "ponder codegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "ponder": "0.18.5",
+    "viem": "2.57.16",
+    "hono": "4.13.16",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
+  }
+}

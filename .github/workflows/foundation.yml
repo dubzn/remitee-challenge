@@ -1,6 +1,7 @@
 # Foundation only: strict TypeScript plus real, isolated Anvil/PostgreSQL smoke
 # and negative checks via the same `npm run check` used locally. A separate job
-# runs real contract tests. Indexer/API and full application acceptance remain open.
+# runs real contract tests. The indexer job runs actual application acceptance;
+# public API and full application acceptance remain separate gates.
 name: Foundation
 
 on:
@@ -112,3 +113,51 @@ jobs:
             exit 1
           fi
           echo "No containers, networks or volumes remain for ${REMITEE_CHECK_PROJECT}."
+
+  indexer:
+    name: Indexer acceptance (Ponder/Anvil/PostgreSQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      REMITEE_INDEXER_TEST_PROJECT: "remitee-indexer-check-${{ github.run_id }}-${{ github.run_attempt }}"
+    steps:
+      - name: Check out repository and pinned contract dependencies
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Set up pinned Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install locked workspace dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check application types and projection rules
+        run: |
+          npm run typecheck
+          npm run indexer:typecheck
+          npm run indexer:unit
+      - name: Run actual indexer acceptance
+        timeout-minutes: 12
+        run: npm run indexer:test
+      - name: Show indexer evidence on failure
+        if: failure()
+        run: |
+          if [ -d ".local/$REMITEE_INDEXER_TEST_PROJECT" ]; then
+            find ".local/$REMITEE_INDEXER_TEST_PROJECT" -name 'indexer-*.log' -exec tail -n 30 {} +
+          fi
+      - name: Remove only this run's indexer test project
+        if: always()
+        run: |
+          case "$REMITEE_INDEXER_TEST_PROJECT" in
+            remitee-indexer-check-*) ;;
+            *) exit 1 ;;
+          esac
+          if [ -f compose.yaml ]; then
+            docker compose -f compose.yaml -p "$REMITEE_INDEXER_TEST_PROJECT" down --volumes --remove-orphans
+            label="label=com.docker.compose.project=$REMITEE_INDEXER_TEST_PROJECT"
+            test -z "$(docker ps --all --quiet --filter "$label")"
+            test -z "$(docker network ls --quiet --filter "$label")"
+            test -z "$(docker volume ls --quiet --filter "$label")"
+          fi

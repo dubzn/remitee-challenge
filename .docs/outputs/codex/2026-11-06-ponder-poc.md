@@ -1,6 +1,8 @@
 # Ponder proof: results and fallback decision
 
-Date: 2026-11-06. Decision: **retain the planned RPC polling worker**. The candidate authorized a Ponder PoC and that fallback if the integration did not behave correctly. The experiment and decision were completed within the 60-minute timebox. This is not implementation or acceptance of the production indexer.
+Subsequent status: [bounded follow-up executed and Ponder selected](2026-11-06-ponder-decision.md). Decisions in this document record the earlier stage; production integration remains pending.
+
+Date: 2026-11-06. Initial decision: **retain the planned RPC polling worker**. That conclusion is now reopened by the [independent Opus/xhigh review and Codex disposition](2026-11-06-indexer-validation-disposition.md); engine selection is pending a bounded follow-up. The candidate authorized a Ponder PoC and that fallback if the integration did not behave correctly. The experiment and decision were completed within the 60-minute timebox. This is not implementation or acceptance of the production indexer.
 
 ## Reproduction and scope
 
@@ -30,20 +32,20 @@ The driver tests `ponder start` and real PostgreSQL/GraphQL, not PGlite, mocked 
 
 The native profile uses `reorgWindow=180`. The guarded profile uses a read-only delayed transport, deployment/genesis identity checks, an HTTP read guard and `reorgWindow=0` to test the SDD's halt-on-admitted-mismatch policy. Ponder still owns synchronization, locks and checkpoints; no competing writer was added.
 
-## Why G4 determines the decision
+## What G4 establishes and what it does not
 
 The driver first admits a Released outcome at block 8 after two extra blocks. It then temporarily hides RPC reads while replacing that history, restores the same head height with a different block-8 hash and verifies Rejected directly from the contract. This avoids mistaking a transient lower head for a verified fork.
 
-Ponder logs `Encountered unrecoverable reorg` with finalized_block 8. Nevertheless, the measured HTTP responses remain nativeReady 200, GraphQL 200 and publicOutcome Released. Source inspection in the pinned package confirms `/ready` reads the backfill `is_ready` flag; it is not a canonical-history/freshness guarantee. The tested guard verifies the deployment anchor and native readiness, so it does not detect an orphaned later checkpoint by itself.
+Ponder logs `Encountered unrecoverable reorg` with finalized_block 8. At the single HTTP sample taken after that log in each reproduction, the responses were nativeReady 200, GraphQL 200 and publicOutcome Released. The test did not measure how long this lasted or the eventual process exit. Source inspection in the pinned package confirms `/ready` reads the backfill `is_ready` flag; it is not a canonical-history/freshness guarantee. The tested guard verifies the deployment anchor and native readiness, so it does not detect an orphaned later checkpoint by itself.
 
-This does not show that every Ponder integration is unsafe or that the framework cannot be hardened. A facade could add independent verification of projected checkpoints and its own read-readiness state. We stopped extending the adapter: for this deadline, that additional consistency ownership weakens the benefit of replacing the already specified worker. Native defaults and our two simple adapters do not satisfy the current fail-closed policy.
+This does not show that every Ponder integration is unsafe or that the framework cannot be hardened. A facade could add independent verification of projected checkpoints and its own read-readiness state. Codex initially stopped adapter work and favored the handwritten design. Independent review corrects that comparison: both engines need canonical projected-checkpoint verification, and a working polling implementation does not exist yet. G4 used reorgWindow=0, so every admitted reorg is beyond the configured recovery window. The tested guard fails that chosen policy, but this does not compare a positive-window Ponder integration with a complete polling worker.
 
 The initial harness iterations corrected ABI default normalization, Ponder's transaction-hash location, API scaffolding and waiting for the full expected dataset. Those were fixture/integration corrections, not framework defects. The retained final run completed every probe and reproduced G4 through the public HTTP boundary; its exit code 0 means the experiment completed, not that Ponder passed production acceptance.
 
-## Next implementation boundary
+## Next decision boundary
 
-Proceed with one bounded HTTP polling worker using viem/pg, the [proposed PostgreSQL model](../../postgres-models.md), deployment/checkpoint verification, atomic event/projection/cursor commits and explicit halt/replay. Its readiness must be an application decision, not just process liveness or a completed historical sync.
+Before selecting an engine, propose one bounded test of a Ponder application-owned checkpoint and public-read guard with a positive recovery window; see the [independent review disposition](2026-11-06-indexer-validation-disposition.md) for pass/fail and stopping conditions. It is not executed. The viem/pg worker and [PostgreSQL model](../../postgres-models.md) remain the fallback. Application readiness must validate projected history with either engine.
 
-The Ponder dependency stays confined to the experiment. Root foundation checks and the approved contracts are unchanged. PoC typecheck and root typecheck pass locally; the framework experiment is not part of existing CI. No testnet/provider account was used, no production migration was applied and issue #4/AC6-AC8 remain open. No new Claude consultation was needed; these are Codex's executed observations and source inspection.
+The Ponder dependency stays confined to the experiment. Root foundation checks and the approved contracts are unchanged. PoC typecheck and root typecheck pass locally; the framework experiment is not part of existing CI. No testnet/provider account was used, no production migration was applied and issue #4/AC6-AC8 remain open. The original experiment was executed by Codex. A later independent Claude Opus/xhigh review challenged the engine-selection conclusion; Claude did not execute runtime tests.
 
-GitHub tracking: [#4](https://github.com/dubzn/remitee-challenge/issues/4) records the polling selection and stays open. [#10](https://github.com/dubzn/remitee-challenge/issues/10), labeled enhancement, tracks future Ponder hardening outside this deliverable.
+GitHub tracking: [#4](https://github.com/dubzn/remitee-challenge/issues/4) records the initial published polling selection and stays open; the local review now reopens that choice before another commit. [#10](https://github.com/dubzn/remitee-challenge/issues/10), labeled enhancement, tracks future Ponder hardening outside this deliverable.

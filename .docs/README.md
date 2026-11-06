@@ -17,7 +17,7 @@ The intended outcome is one reviewable submission within one week. Foundation an
 9. [Infrastructure-first block and ownership](infrastructure-plan.md): Docker foundation, baseline CI, seven linked GitHub issues and division between Codex and Claude before contracts. See the [Opus/xhigh pre-commit review disposition](outputs/codex/2026-11-04-preflight-decisions.md) for corrections and remaining decisions.
 10. [Contract core interface and storage](contract-design.md): approved and implemented ABI/types/state, mapped SDD completion checks and verification evidence. Pause/upgrade alternatives are future issues [#8](https://github.com/dubzn/remitee-challenge/issues/8)/[#9](https://github.com/dubzn/remitee-challenge/issues/9).
 
-11. [Indexer design and provider options](indexer-design.md): selected polling flow, Alchemy RPC/webhooks/Subgraphs status, and the [executed Ponder proof/fallback decision](outputs/codex/2026-11-06-ponder-poc.md). The production indexer remains pending.
+11. [Indexer design and provider options](indexer-design.md): **Ponder selected** after the [concrete recovery/idempotency proof](outputs/codex/2026-11-06-ponder-decision.md). Production integration remains pending.
 12. [PostgreSQL models](postgres-models.md): relationship diagram, column types, keys, indexes, atomic writes and schema/replay policy for the proposed three tables.
 
 ## Working agreement

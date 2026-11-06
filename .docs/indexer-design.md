@@ -1,6 +1,6 @@
 # Indexer design and provider options
 
-Date: 2026-11-06. Status: the local Ponder PoC is complete and RPC polling is selected; no production indexer or domain migration is implemented. Refines S2/AC6-AC8 in the [canonical SDD](sdd/escrow.md), tracked in [#4](https://github.com/dubzn/remitee-challenge/issues/4). Schema details are in [PostgreSQL models](postgres-models.md).
+Date: 2026-11-06. Status: **Ponder 0.18.5 selected** after the [executed checkpoint/recovery follow-up](outputs/codex/2026-11-06-ponder-decision.md). Production integration and S2/AC6-AC8 remain pending. Refines the [canonical SDD](sdd/escrow.md), tracked in [#4](https://github.com/dubzn/remitee-challenge/issues/4); [PostgreSQL models](postgres-models.md) distinguish the selected design from the archived polling proposal.
 
 ## Existing plan and desired behavior
 
@@ -10,7 +10,7 @@ Observe the five frozen events from [IEscrow](../contracts/src/IEscrow.sol). Bui
 
 ## Recommendation and alternatives
 
-The current SDD baseline proposes one TypeScript worker using viem's public RPC actions and the existing `pg` dependency. The authorized Ponder proof has now been executed; retain this polling baseline after the measured admitted-reorg/readiness mismatch. See [results and decision](outputs/codex/2026-11-06-ponder-poc.md). Use Anvil locally; optionally use Alchemy's Sepolia RPC for a later testnet deployment. This is a recommendation, not a claim that a custom engine is required by the challenge or that a framework is inferior. viem exposes read-only public actions and HTTP transports; it does not supply our durable projection protocol. [Client/action documentation](https://viem.sh/docs/clients/intro).
+Select Ponder for ordered ingestion, persistence and bounded reorg recovery, with application-owned projection rules and canonical read gating. The [follow-up proof](outputs/codex/2026-11-06-ponder-decision.md) passed the concrete failure cases after independent review reopened the original polling decision. Use Anvil locally; optional testnet integration remains separate. The alternatives below explain the decision; only one engine is implemented for this deliverable.
 
 | Option | Local Anvil | Testnet | What it supplies | Work still owned by this application |
 | --- | --- | --- | --- | --- |
@@ -29,13 +29,13 @@ Our worker would call `eth_chainId`, `eth_getBlockByNumber`, `eth_getCode` durin
 
 Alchemy webhooks instead push to an HTTP receiver and require signature validation. Its documented ordering assurance covers first deliveries; finite delivery retries are not a durable cursor for this application. We would still need reconciliation for gaps and restarts. A tunnel to a local receiver does not connect the hosted service to our private Anvil chain; that distinction follows from the hosted-network/receiver architecture. [Custom Webhooks](https://www.alchemy.com/docs/reference/custom-webhook), [delivery and signature behavior](https://www.alchemy.com/docs/reference/notify-api-quickstart).
 
-### Ponder is a viable local and testnet alternative
+### Selected Ponder engine
 
 Ponder explicitly supports Anvil. Its guide disables `cacheRpcRequests` for local chains that reset; its database guide supports an external PostgreSQL server in local development. A different configured chain/RPC supplies the testnet environment. [Foundry guide](https://ponder.sh/docs/guides/foundry), [database guide](https://ponder.sh/docs/database), [chain configuration](https://ponder.sh/docs/config/chains).
 
-Ponder owns synchronization/cache/checkpoint and schema lifecycle. Its current chain configuration includes automatic recovery within a reorg window, which differs from our proposed halt-and-validated-replay policy. Neither its development hot reload nor a configurable reorg window alone proves our AC6-AC8 behavior. Do not write our own cursor into Ponder's internal tables or run both engines for the same projection. [Chain recovery settings](https://ponder.sh/docs/config/chains), [self-hosting and crash recovery](https://ponder.sh/docs/production/self-hosting).
+Ponder owns synchronization/cache/checkpoint and schema lifecycle. Its current chain configuration includes automatic recovery within a reorg window, which replaces the earlier halt-on-every-mismatch proposal with bounded rollback and fail-closed reads beyond the window. Neither its development hot reload nor a configurable reorg window alone proves our AC6-AC8 behavior. Do not write our own cursor into Ponder's internal tables or run both engines for the same projection. [Chain recovery settings](https://ponder.sh/docs/config/chains), [self-hosting and crash recovery](https://ponder.sh/docs/production/self-hosting).
 
-The [bounded proof](spikes/004-ponder-poc.md) was performed with Ponder 0.18.5, actual PostgreSQL/Anvil and the real contract. It passed persistence, restart, hard-kill and shallow-fork probes. Native readiness and a small guard still served an orphan Released outcome after a verified admitted reorg. Retain polling for this deliverable; [#10](https://github.com/dubzn/remitee-challenge/issues/10) tracks possible future hardening. This is a finding about the tested integration, not a general rejection of framework reuse.
+The [initial proof](spikes/004-ponder-poc.md) exposed readiness and read-guard gaps. The [completed follow-up](outputs/codex/2026-11-06-ponder-decision.md) combines a delayed source, positive recovery window, public block-handler checkpoint and guarded reads. It passed duplicate/crash/restart, empty blocks, RPC loss, within-window rollback, beyond-window fail-closed reads and explicit replay. The earlier [review disposition](outputs/codex/2026-11-06-indexer-validation-disposition.md) is historical; [#10](https://github.com/dubzn/remitee-challenge/issues/10) has not been updated by this local proof.
 
 ### Comparison with Dojo Torii
 
@@ -45,9 +45,29 @@ Our Escrow is a conventional Solidity contract, not a MUD World/Store. Adopting 
 
 **Envio HyperIndex** is another event/schema/GraphQL indexing framework with local Docker and self-hosting options. Treat it as a second candidate, not an executed Anvil integration: its data-source/authentication requirements need verification for a fully local RPC path. [HyperIndex overview](https://docs.envio.dev/docs/HyperIndex/overview).
 
-The distinction is model-aware automatic synchronization versus a generic event-indexing engine with application-defined projections. For either generic framework, the required escrow GET endpoints, chain-time eligibility and acceptance tests remain application responsibilities. Engine-managed synchronization should replace our handwritten worker responsibilities, not run alongside a second competing cursor. The proof is now complete: Ponder is installed only in the isolated experiment and was not adopted for the application. The polling fallback is selected.
+For a conventional contract, the framework replaces handwritten synchronization and rollback; escrow rules, required GET endpoints, chain-time eligibility and acceptance tests remain application responsibilities. Ponder is selected using the concrete proof. Envio/MUD and a second polling implementation are outside this deliverable.
 
-## Proposed worker flow
+## Selected indexing flow
+
+```mermaid
+flowchart LR
+    RPC[Validated RPC, delayed head] --> Ponder[Ponder: one writer and rollback]
+    Ponder --> Adapter[Normalize events]
+    Adapter --> Rules[Projection rules and persistence port]
+    Rules --> Store[Ponder context.db adapter]
+    Ponder --> Blocks[Public block checkpoint handler]
+    Store --> DB[(PostgreSQL)]
+    Blocks --> DB
+    DB --> Query[Read snapshot and canonical RPC guard]
+    RPC --> Query
+    Query --> API[Public read API and application health]
+```
+
+The selected recovery policy permits framework rollback within the positive timestamp window, canonical-prefix reads with explicit progress, and fail-closed reads beyond recovery. The experiment uses 12 seconds and two additional blocks; production integration starts from an explicit configurable 180-second baseline, not a claim of mainnet finality. Ponder's native server endpoints remain internal; the final read API exposes the required public paths. See [decision and evidence](outputs/codex/2026-11-06-ponder-decision.md).
+
+## Archived polling fallback flow
+
+The following flow and failure table describe the earlier polling contingency, not the selected Ponder engine. Do not add its cursor/advisory lock on top of Ponder.
 
 ```mermaid
 flowchart LR
@@ -104,10 +124,30 @@ Testnet deployment remains optional and is not executed by this documentation ta
 
 ## Implementation gates
 
-- [x] Candidate authorized the Ponder PoC with polling fallback; evidence selects polling, with experimental dependencies isolated.
-- [ ] Implement the [three PostgreSQL models](postgres-models.md), validation and one atomic range writer.
-- [ ] Prove duplicate/replay, stale predecessor, empty range, overlap, crash/restart and competing-writer behavior against PostgreSQL (AC6-AC7).
-- [ ] Prove delay N-1/N/N+1, pre-admission fork handling, admitted mismatch halt, unavailable RPC and explicit validated replay against Anvil/PostgreSQL (AC8).
+- [x] Candidate authorized the Ponder PoC and an independent Opus/xhigh review; both outputs are recorded and experimental dependencies remain isolated.
+- [x] Select Ponder using the bounded application-checkpoint/recovery experiment; production integration is not yet accepted.
+- [ ] Implement engine-appropriate persistence and consistency checks. Use the [selected Ponder model](postgres-models.md); preserve framework ownership of internal progress.
+- [ ] Reprove duplicate/conflict, ordered replay, empty blocks, crash/restart and competing-writer behavior with the final adapter (AC6-AC7).
+- [ ] Reprove delay boundaries, pre-admission fork handling, canonical rollback within the recovery window, beyond-window read blocking, RPC failure and explicit replay with the final adapter (AC8).
 - [ ] Run the actual suite in CI before claiming the November 6 indexer block complete.
 
 Provider/framework capability statements were checked in primary documentation on Nov 6, 2026. The isolated Ponder proof and dependency installation are recorded separately; no provider subscription or throughput benchmark was performed. The recommendation is an engineering inference for one contract/five events and this delivery window.
+
+## Projection and persistence boundary
+
+Use a thin event adapter, an engine-independent projection function and a small `ProjectionStore` port. The event adapter normalizes decoded chain facts; projection rules choose creation or a legal terminal transition; the persistence adapter owns database calls. Reads belong to a separate query adapter. The experiment demonstrates this boundary in `projection.ts` and `store.ts`; it is not a new generic repository framework.
+
+```mermaid
+flowchart LR
+    Engine[Chosen event engine] --> Handler[Normalize chain event]
+    Handler --> Project[Projection rules]
+    Project --> Port[ProjectionStore interface]
+    Port --> Adapter[Engine persistence adapter]
+    Adapter --> PG[(PostgreSQL)]
+```
+
+This still writes directly to PostgreSQL. It does not make an HTTP request to the read API or introduce a queue. With Ponder, the adapter receives `context.db` from the current handler; the framework owns transaction, checkpoint and rollback. Opening an unrelated `pg` writer from that handler would break this ownership. With polling, a unit of work supplies the same `pg` client to event, projection and checkpoint repositories inside one transaction.
+
+Idempotency is a persistence invariant, not a promise that events arrive once. Scope event identity to the validated deployment plus transaction hash and log index. The experiment uses one validated deployment per schema. Verify an existing identity's block hash, position and payload: an identical replay is a no-op; conflicting content aborts instead of silently overwriting state. Apply an escrow transition only when its journal event is new. A terminal escrow must never be reset by replaying creation.
+
+On a crash before commit, the journal, projection and progress roll back together. After commit, restart resumes from durable engine progress; duplicate checks remain a second defense. The single writer and primary key prevent racing inserts; neither a standalone conflict-ignore statement nor in-memory deduplication is sufficient. There is no independently committed “recorded but not projected” state, retry queue or cross-database exactly-once guarantee. A canonical reorg is reconciled by the selected engine policy, not mistaken for a harmless duplicate.

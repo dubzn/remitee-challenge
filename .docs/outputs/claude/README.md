@@ -130,3 +130,17 @@ Runner footer:
 > Claude usage remaining:
 > - Current session: 73% remaining · resets Nov 5 at 3:40am (America/Buenos_Aires)
 > - Current week (all models): 95% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)
+
+## Independent indexer feasibility validation
+
+Date: 2026-11-06. Candidate explicitly requested Opus / xhigh before another commit. ec10164 was already published before that request; no history rewrite or new commit is part of this review.
+
+The [first broad prompt](2026-11-06-indexer-validation-attempt-1-prompt.md) stalled without a review. Codex terminated only its model process; the runner's [captured output](2026-11-06-indexer-validation-attempt-1.md) contains a usage footer, not a verdict. The [bounded retry prompt](2026-11-06-indexer-validation-prompt.md) completed successfully, exit code 0, no stderr, through the subscription-only runner with the same requested model/effort. [Unmodified response](2026-11-06-indexer-validation.md).
+
+Verdict: G4 is valid for the tested guard, but rejecting Ponder is premature. Both engines require canonical projected-checkpoint/readiness validation. Claude proposes one bounded test using a public block handler and an application checkpoint with a positive recovery window. It did not execute tests or approve a production integration/schema. [Codex independent checks, corrections and proposed next gate](../codex/2026-11-06-indexer-validation-disposition.md).
+
+Latest runner footer:
+
+> Claude usage remaining:
+> - Current session: 82% remaining · resets Nov 6 at 12:30pm (America/Buenos_Aires)
+> - Current week (all models): 93% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)

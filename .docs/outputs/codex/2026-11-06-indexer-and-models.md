@@ -1,5 +1,7 @@
 # Indexer alternatives and PostgreSQL design review
 
+Subsequent status: [bounded follow-up executed and Ponder selected](2026-11-06-ponder-decision.md). Decisions in this document record the earlier stage; production integration remains pending.
+
 Date: 2026-11-06. The candidate asked how indexing was planned, whether an existing product could cover local/testnet use, and for PostgreSQL model documentation.
 
 ## Result
@@ -21,3 +23,5 @@ No new Claude invocation, dependency installation, provider subscription, testne
 Follow-up: the candidate asked for a Torii analogue. The dedicated design now distinguishes MUD Store indexing (protocol-aware architectural analogue) from Ponder/Envio for ordinary Solidity events. Prioritize the bounded Ponder compatibility proof before committing to the handwritten engine; no implementation choice has been adopted.
 
 Runtime follow-up: the authorized [Ponder proof](2026-11-06-ponder-poc.md) is now complete. It selects the polling fallback; this earlier source review is not the final engine decision.
+
+Independent-review follow-up: [Opus/xhigh validation and Codex disposition](2026-11-06-indexer-validation-disposition.md) find the engine rejection premature. Engine choice is reopened; the original experiment remains valid evidence for its tested guard only.

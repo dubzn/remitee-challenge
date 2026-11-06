@@ -37,7 +37,7 @@ try {
     ],
     {
       cwd: resolve(root, 'apps/indexer'),
-      env: { ...process.env, INDEXER_STARTUP_MIN_BLOCK: startupFloor.toString() },
+      env: { ...process.env, DEPLOYMENT_FILE: resolve(process.env.DEPLOYMENT_FILE!), INDEXER_STARTUP_MIN_BLOCK: startupFloor.toString() },
       stdio: 'inherit',
     },
   );

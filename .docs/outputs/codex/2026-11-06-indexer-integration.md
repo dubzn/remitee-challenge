@@ -44,3 +44,7 @@ One initial foundation build timed out while resolving Docker image metadata wit
 ## Remaining gates
 
 Local I1-I4 are verified. I5/AC6-AC8 final closeout still requires observed remote CI for the published code. S3 read API, S4 full startup/demo and S5 final rehearsal remain separate. [Runtime commands](../../indexer-runtime.md) and [CLI wallet/testnet runbook](../../testnet-wallet.md) are available. Testnet instructions are manual and unexecuted; expiry requires seven real days there and is tested deterministically on Anvil instead. No wallet UI, signer key in the observer, broker or competing polling worker is added.
+
+## Relative descriptor regression
+
+Additional run remitee-indexer-check-95996-9beee0ca: [13 successful observations](2026-11-06-relative-descriptor-results.json), exit 0. The launcher resolves a relative DEPLOYMENT_FILE before changing cwd for Ponder; the fixture now uses a relative path. The competing writer uses a distinct port and explicitly asserts the schema-lock message. Recoverable fork: 78 samples; deep replacement: 112 rounds over 60 seconds. Development services were preserved and isolated resources cleaned.

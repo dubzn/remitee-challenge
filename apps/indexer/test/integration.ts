@@ -3,7 +3,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { createWriteStream, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -250,7 +250,7 @@ try {
     ...process.env,
     RPC_URL: proxyUrl,
     DATABASE_URL: databaseUrl,
-    DEPLOYMENT_FILE: manifestFile,
+    DEPLOYMENT_FILE: relative(root, manifestFile),
     INDEXER_SCHEMA: 'acceptance',
     INDEXER_POLL_MS: '100',
     CONFIRMATION_DELAY: '2',

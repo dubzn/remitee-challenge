@@ -14,12 +14,12 @@ export default createConfig({
   chains: {
     anvil: {
       id: 31337,
-      rpc: process.env.POC_MODE === 'guarded'
+      rpc: ['guarded', 'checkpoint'].includes(process.env.POC_MODE ?? '')
         ? custom({ request: delayedRequest }, { retryCount: 0 })
         : http(process.env.POC_RPC_URL!, { retryCount: 0, timeout: 2_000 }),
       cacheRpcRequests: false,
       pollingInterval: 100,
-      reorgWindow: process.env.POC_MODE === 'guarded' ? 0 : 180,
+      reorgWindow: process.env.POC_MODE === 'guarded' ? 0 : Number(process.env.POC_REORG_WINDOW ?? '180'),
       ethGetLogsBlockRange: 10,
     },
   },
@@ -31,4 +31,7 @@ export default createConfig({
       startBlock: manifest.deploymentBlock,
     },
   },
+  blocks: process.env.POC_MODE === 'checkpoint' ? {
+    Checkpoint: { chain: 'anvil', startBlock: manifest.deploymentBlock, interval: 1 },
+  } : undefined,
 });

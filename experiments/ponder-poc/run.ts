@@ -337,8 +337,153 @@ try {
   assert.equal(replayJournal, 2);
   assert.equal((await db.query('SELECT count(*)::int AS n FROM validated_replay.journal WHERE transaction_hash = $1', [guardedRelease.transactionHash])).rows[0].n, 0);
   record('G5 validated replay', 'pass', { status: 'Rejected', events: 2, orphanAbsent: true });
-  const gaps = observations.filter(row => row.result !== 'pass');
-  record('Decision inputs', gaps.some(row => row.result === 'incompatible') ? 'retain-rpc-polling' : 'ponder-compatible-with-adapter', { nativeGaps: gaps.map(row => row.name), adapter: 'delayed read transport + identity/readiness guard; no second cursor or writer', scope: 'PoC only; not full AC6-AC8 evidence' });
+  await stop(running.child);
+  const checkpointEnv = { POC_MODE: 'checkpoint', POC_CONFIRMATION_DELAY: '2', POC_REORG_WINDOW: '12', POC_DUPLICATE_DELIVERY: '1' };
+  let checkpointSchema = 'checkpoint_probe';
+  running = start(port, checkpointSchema, checkpointEnv);
+  async function checkpointRows() { return (await db!.query(`SELECT * FROM ${checkpointSchema}.escrows ORDER BY id`)).rows; }
+  async function checkpointRow() { return (await db!.query(`SELECT * FROM ${checkpointSchema}.checkpoint WHERE id = 1`)).rows[0]; }
+  async function eventCount() { return (await db!.query(`SELECT count(*)::int AS n FROM ${checkpointSchema}.journal`)).rows[0].n as number; }
+  async function observed(resource = 'escrows'): Promise<{ status: number | null; body: { checkpoint?: { number: string; hash: string }; items?: { id: string; status: string }[] } }> {
+    try {
+      const response = await fetch(`${running.url}/observed/${resource}`, { signal: AbortSignal.timeout(3_000) });
+      return { status: response.status, body: await response.json() as { checkpoint?: { number: string; hash: string }; items?: { id: string; status: string }[] } };
+    } catch { return { status: null, body: {} }; }
+  }
+  await until('checkpoint profile initial projection', async () => (await observed()).status === 200 && (await checkpointRows())[0]?.status === 'Rejected');
+  assert.equal(await eventCount(), 2);
+  const secondCreation = await create();
+  await delay(600);
+  assert.equal((await checkpointRows()).length, 1);
+  await rpc('anvil_mine', [1, 1]);
+  await delay(600);
+  assert.equal((await checkpointRows()).length, 1);
+  await rpc('anvil_mine', [1, 1]);
+  await until('checkpoint admission at two blocks', async () => (await checkpointRows()).length === 2);
+  rmSync(`${faultFile}.duplicate`, { force: true });
+  writeFileSync(`${faultFile}.redeliver`, 'one committed event');
+  await rpc('anvil_mine', [2, 1]);
+  await until('redelivery after committed event', async () => existsSync(`${faultFile}.duplicate`));
+  rmSync(`${faultFile}.redeliver`);
+  const emptyHead = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
+  await until('empty blocks checkpoint', async () => (await checkpointRow())?.number === emptyHead.toString());
+  assert(emptyHead > secondCreation.blockNumber);
+  record('F1 checkpoint, duplicate and conflicting delivery, delayed admission', 'pass', { delay: 2, reorgWindowSeconds: 12, extraBlocks: [0, 1, 2], visible: [false, false, true], emptyBlockCheckpoint: emptyHead.toString(), events: await eventCount(), duplicateProjectionSkipped: true, conflictingPayloadRejected: true });
+
+  rmSync(`${faultFile}.reached`, { force: true });
+  const beforeCrashCheckpoint = await checkpointRow();
+  writeFileSync(faultFile, '3');
+  const interruptedCreation = await create();
+  await rpc('anvil_mine', [2, 1]);
+  await until('checkpoint profile crash barrier', async () => existsSync(`${faultFile}.reached`));
+  await delay(500);
+  const crashSnapshot = (await db.query(`SELECT (SELECT count(*)::int FROM ${checkpointSchema}.journal WHERE escrow_id=3) AS events, (SELECT count(*)::int FROM ${checkpointSchema}.escrows WHERE id=3) AS escrows, (SELECT number::text FROM ${checkpointSchema}.checkpoint WHERE id=1) AS checkpoint`)).rows[0];
+  assert.equal(crashSnapshot.events, 0);
+  assert.equal(crashSnapshot.escrows, 0);
+  assert(BigInt(crashSnapshot.checkpoint) >= BigInt(beforeCrashCheckpoint.number));
+  assert(BigInt(crashSnapshot.checkpoint) < interruptedCreation.blockNumber, 'Checkpoint includes interrupted event block');
+  await stop(running.child, 'SIGKILL');
+  rmSync(faultFile);
+  running = start(port, checkpointSchema, checkpointEnv);
+  await until('checkpoint crash recovery', async () => (await observed()).status === 200 && (await checkpointRows()).length === 3, 90_000);
+  assert.equal(await eventCount(), 4);
+  await stop(running.child);
+  running = start(port, checkpointSchema, checkpointEnv);
+  await until('checkpoint committed restart', async () => (await observed()).status === 200 && await eventCount() === 4, 90_000);
+  record('F4 crash atomicity and committed restart', 'pass', { duringHandler: crashSnapshot, recoveredEscrows: 3, recoveredEvents: 4, secondRestartEvents: await eventCount() });
+
+  rpcAvailable = false;
+  assert.equal((await observed()).status, 503);
+  assert.equal((await observed('health')).status, 503);
+  rpcAvailable = true;
+  await until('checkpoint RPC recovery', async () => (await observed()).status === 200);
+  record('F2 application RPC outage', 'pass', { dataStatus: 503, healthStatus: 503, recovered: true });
+
+  const shortSnapshot = await rpc('evm_snapshot');
+  const shortAncestor = await client.getBlock({ blockTag: 'latest' });
+  await rpc('evm_setNextBlockTimestamp', [Number(shortAncestor.timestamp + 1n)]);
+  const shortRelease = await act('confirmEscrow', 2n, true);
+  await rpc('anvil_mine', [2, 1]);
+  await until('within-window release admitted', async () => (await observed()).body.items?.find(row => row.id === '2')?.status === 'Released');
+  rpcAvailable = false;
+  assert.equal(await rpc('evm_revert', [shortSnapshot]), true);
+  await rpc('evm_setNextBlockTimestamp', [Number(shortAncestor.timestamp + 2n)]);
+  const shortReject = await act('rejectEscrow', 2n, true);
+  assert.equal(shortReject.blockNumber, shortRelease.blockNumber);
+  assert.notEqual(shortReject.blockHash, shortRelease.blockHash);
+  await rpc('anvil_mine', [3, 1]);
+  const shortEligibleHeader = await client.getBlock({ blockNumber: (await client.getBlockNumber({ cacheTime: 0 })) - 2n });
+  const shortAncestorHeader = await client.getBlock({ blockNumber: shortReject.blockNumber - 1n });
+  assert(shortEligibleHeader.timestamp - shortAncestorHeader.timestamp < 12n);
+  rpcAvailable = true;
+  let withinSamples = 0; let unavailableSamples = 0; let successfulSamples = 0;
+  const withinEnd = Date.now() + 10_000;
+  while (Date.now() < withinEnd) {
+    const response = await observed(); withinSamples++;
+    if (response.status === 200) {
+      successfulSamples++;
+      const checkpointNumber = BigInt(response.body.checkpoint!.number);
+      const canonicalHeader = await client.getBlock({ blockNumber: checkpointNumber });
+      assert.equal(response.body.checkpoint!.hash, canonicalHeader.hash);
+      const expected = checkpointNumber < shortReject.blockNumber ? 'Pending' : 'Rejected';
+      assert.equal(response.body.items?.find(row => row.id === '2')?.status, expected, 'Projection inconsistent with reported canonical checkpoint');
+    }
+    else { unavailableSamples++; assert.equal(response.status, 503); }
+    await delay(100);
+  }
+  await until('within-window canonical reconciliation', async () => (await observed()).body.items?.find(row => row.id === '2')?.status === 'Rejected');
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM ${checkpointSchema}.journal WHERE transaction_hash=$1`, [shortRelease.transactionHash])).rows[0].n, 0);
+  assert.equal(await eventCount(), 5);
+  record('F2 admitted reorg within positive recovery window', 'pass', { samples: withinSamples, successfulSamples, unavailableSamples, durationMs: 10_000, eligibleToAncestorSeconds: (shortEligibleHeader.timestamp - shortAncestorHeader.timestamp).toString(), status: 'Rejected', orphanAbsent: true });
+
+  const deepSnapshot = await rpc('evm_snapshot');
+  const deepAncestor = await client.getBlock({ blockTag: 'latest' });
+  await rpc('evm_setNextBlockTimestamp', [Number(deepAncestor.timestamp + 1n)]);
+  const deepRelease = await act('confirmEscrow', 3n, true);
+  await rpc('anvil_mine', [2, 1]);
+  await until('deep-fork release first admitted', async () => (await observed()).body.items?.find(row => row.id === '3')?.status === 'Released');
+  const releaseHeader = await client.getBlock({ blockNumber: deepRelease.blockNumber });
+  await rpc('evm_setNextBlockTimestamp', [Number(releaseHeader.timestamp + 30n)]);
+  await rpc('evm_mine');
+  await rpc('anvil_mine', [2, 1]);
+  const finalizedEligible = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
+  await until('finalizing empty checkpoint', async () => (await checkpointRow())?.number === finalizedEligible.toString());
+  await delay(500);
+  const finalizedEligibleHeader = await client.getBlock({ blockNumber: finalizedEligible });
+  assert(finalizedEligibleHeader.timestamp - releaseHeader.timestamp >= 12n);
+  rpcAvailable = false;
+  assert.equal(await rpc('evm_revert', [deepSnapshot]), true);
+  await rpc('evm_setNextBlockTimestamp', [Number(deepAncestor.timestamp + 2n)]);
+  const deepReject = await act('rejectEscrow', 3n, true);
+  assert.equal(deepReject.blockNumber, deepRelease.blockNumber);
+  assert.notEqual(deepReject.blockHash, deepRelease.blockHash);
+  await rpc('anvil_mine', [5, 1]);
+  rpcAvailable = true;
+  await until('outside-window detection', async () => /Encountered unrecoverable.*reorg/.test(readFileSync(running.log, 'utf8')), 30_000);
+  let outsideSamples = 0;
+  const outsideEnd = Date.now() + 60_000;
+  while (Date.now() < outsideEnd) {
+    assert.equal((await observed()).status, 503, 'Orphan projection exposed beyond window');
+    assert.equal((await observed('health')).status, 503);
+    outsideSamples++;
+    await delay(500);
+  }
+  await stop(running.child);
+  running = start(port, checkpointSchema, checkpointEnv);
+  await delay(5_000);
+  const restartData = (await observed()).status;
+  const restartHealth = (await observed('health')).status;
+  assert(restartData === 503 || restartData === null);
+  assert(restartHealth === 503 || restartHealth === null);
+  record('F3 beyond-window fail-closed and restart', 'pass', { samples: outsideSamples, durationMs: 60_000, oldEligibleMinusReleaseSeconds: (finalizedEligibleHeader.timestamp - releaseHeader.timestamp).toString(), restartData, restartHealth });
+  await stop(running.child);
+  checkpointSchema = 'checkpoint_replay';
+  running = start(port, checkpointSchema, checkpointEnv);
+  await until('checkpoint explicit replay', async () => (await observed()).body.items?.find(row => row.id === '3')?.status === 'Rejected', 90_000);
+  assert.equal(await eventCount(), 6);
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM ${checkpointSchema}.journal WHERE transaction_hash=$1`, [deepRelease.transactionHash])).rows[0].n, 0);
+  record('F3 validated fresh-schema replay', 'pass', { escrows: (await checkpointRows()).length, events: await eventCount(), status: 'Rejected', orphanAbsent: true });
+  record('Follow-up engine decision', 'select-ponder', { scope: 'experiment evidence; production integration and CI still pending', adapter: 'projection port + Ponder transaction adapter + public block checkpoint + guarded facade', reorgWindowSeconds: 12, confirmationDelayBlocks: 2 });
 } catch (error) {
   record('Experiment failure', 'failed', { message: error instanceof Error ? error.message : String(error), cause: error instanceof Error ? String(error.cause ?? '') : '' });
   console.error(error);

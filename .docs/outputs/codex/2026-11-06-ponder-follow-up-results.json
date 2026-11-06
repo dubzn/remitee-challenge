@@ -1,0 +1,223 @@
+[
+  {
+    "name": "P1 history and exact uint256",
+    "result": "pass",
+    "details": {
+      "escrows": 5,
+      "events": 9,
+      "amount": "1606938044258990275541962092341162602522202993782792835301376",
+      "statuses": [
+        "Released",
+        "CancelledBySender",
+        "Rejected",
+        "Expired",
+        "Pending"
+      ]
+    }
+  },
+  {
+    "name": "P2 same-build restart and catch-up",
+    "result": "pass",
+    "details": {
+      "escrows": 7,
+      "events": 11
+    }
+  },
+  {
+    "name": "P3 kill after journal, before projection",
+    "result": "pass",
+    "details": {
+      "duringHandler": {
+        "events": 0,
+        "escrows": 0
+      },
+      "recoveredEscrows": 8,
+      "recoveredEvents": 12
+    }
+  },
+  {
+    "name": "P4 competing writer",
+    "result": "pass",
+    "details": {
+      "secondReady": false,
+      "journalUnchanged": true
+    }
+  },
+  {
+    "name": "P6 additional-block admission",
+    "result": "integration-gap",
+    "details": {
+      "extraBlocksAtVisibility": "0",
+      "publiclyVisible": true,
+      "proposedDelay": 2
+    }
+  },
+  {
+    "name": "P6 RPC outage readiness",
+    "result": "integration-gap",
+    "details": {
+      "nativeReadyStatus": 200,
+      "rejectedRequests": 54
+    }
+  },
+  {
+    "name": "P5 shallow fork",
+    "result": "pass",
+    "details": {
+      "replacedBlock": "19",
+      "orphanReleaseRemoved": true,
+      "finalStatus": "Rejected"
+    }
+  },
+  {
+    "name": "P5 same-address chain reset",
+    "result": "pass",
+    "details": {
+      "readyStatus": null,
+      "rowCount": 10,
+      "replacementCorrect": false,
+      "exitCode": 1
+    }
+  },
+  {
+    "name": "G1 delayed transport admission",
+    "result": "pass",
+    "details": {
+      "extraBlocks": [
+        0,
+        1,
+        2
+      ],
+      "visible": [
+        false,
+        false,
+        true
+      ],
+      "amount": "777"
+    }
+  },
+  {
+    "name": "G2 public read during outage",
+    "result": "pass",
+    "details": {
+      "graphqlStatus": 503
+    }
+  },
+  {
+    "name": "G3 pre-admission fork",
+    "result": "pass",
+    "details": {
+      "provisionalOutcomeNeverProjected": true,
+      "canonicalOutcome": "Released"
+    }
+  },
+  {
+    "name": "G4 admitted mismatch and public reads",
+    "result": "incompatible",
+    "details": {
+      "nativeReady": 200,
+      "graphqlHttp": 200,
+      "publicOutcome": "Released",
+      "canonicalOutcome": "Rejected",
+      "verifiedSameHeightDifferentHash": true
+    }
+  },
+  {
+    "name": "G5 validated replay",
+    "result": "pass",
+    "details": {
+      "status": "Rejected",
+      "events": 2,
+      "orphanAbsent": true
+    }
+  },
+  {
+    "name": "F1 checkpoint, duplicate and conflicting delivery, delayed admission",
+    "result": "pass",
+    "details": {
+      "delay": 2,
+      "reorgWindowSeconds": 12,
+      "extraBlocks": [
+        0,
+        1,
+        2
+      ],
+      "visible": [
+        false,
+        false,
+        true
+      ],
+      "emptyBlockCheckpoint": "13",
+      "events": 3,
+      "duplicateProjectionSkipped": true,
+      "conflictingPayloadRejected": true
+    }
+  },
+  {
+    "name": "F4 crash atomicity and committed restart",
+    "result": "pass",
+    "details": {
+      "duringHandler": {
+        "events": 0,
+        "escrows": 0,
+        "checkpoint": "15"
+      },
+      "recoveredEscrows": 3,
+      "recoveredEvents": 4,
+      "secondRestartEvents": 4
+    }
+  },
+  {
+    "name": "F2 application RPC outage",
+    "result": "pass",
+    "details": {
+      "dataStatus": 503,
+      "healthStatus": 503,
+      "recovered": true
+    }
+  },
+  {
+    "name": "F2 admitted reorg within positive recovery window",
+    "result": "pass",
+    "details": {
+      "samples": 80,
+      "successfulSamples": 79,
+      "unavailableSamples": 1,
+      "durationMs": 10000,
+      "eligibleToAncestorSeconds": "3",
+      "status": "Rejected",
+      "orphanAbsent": true
+    }
+  },
+  {
+    "name": "F3 beyond-window fail-closed and restart",
+    "result": "pass",
+    "details": {
+      "samples": 113,
+      "durationMs": 60000,
+      "oldEligibleMinusReleaseSeconds": "30",
+      "restartData": null,
+      "restartHealth": null
+    }
+  },
+  {
+    "name": "F3 validated fresh-schema replay",
+    "result": "pass",
+    "details": {
+      "escrows": 3,
+      "events": 6,
+      "status": "Rejected",
+      "orphanAbsent": true
+    }
+  },
+  {
+    "name": "Follow-up engine decision",
+    "result": "select-ponder",
+    "details": {
+      "scope": "experiment evidence; production integration and CI still pending",
+      "adapter": "projection port + Ponder transaction adapter + public block checkpoint + guarded facade",
+      "reorgWindowSeconds": 12,
+      "confirmationDelayBlocks": 2
+    }
+  }
+]

@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: infrastructure and approved contract core verified locally and in CI; later slices remain planned. Updated: 2026-11-06. All authored documentation is in English.
+Status: infrastructure, contract core and Ponder indexer verified locally and in CI; public API/demo remain planned. Updated: 2026-11-06. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. Foundation and the Nov 5 approved contract core are implemented with local and observed CI evidence; indexer/API/deployment remain later slices. Start with [local commands and verification](local-development.md). The November 5 contract milestone is [closed with evidence](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrade alternatives are future improvements, not completion gates.
+The intended outcome is one reviewable submission within one week. Foundation, the approved contract core and the Ponder indexer are implemented with local and observed CI evidence; public API, full startup/demo and rehearsal remain later slices. Start with [local commands and verification](local-development.md). The November 5 contract milestone is [closed with evidence](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrade alternatives are future improvements, not completion gates.
 
 ## Start here
 

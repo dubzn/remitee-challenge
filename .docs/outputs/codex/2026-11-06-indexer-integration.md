@@ -48,3 +48,7 @@ Local I1-I4 are verified. I5/AC6-AC8 final closeout still requires observed remo
 ## Relative descriptor regression
 
 Additional run remitee-indexer-check-95996-9beee0ca: [13 successful observations](2026-11-06-relative-descriptor-results.json), exit 0. The launcher resolves a relative DEPLOYMENT_FILE before changing cwd for Ponder; the fixture now uses a relative path. The competing writer uses a distinct port and explicitly asserts the schema-lock message. Recoverable fork: 78 samples; deep replacement: 112 rounds over 60 seconds. Development services were preserved and isolated resources cleaned.
+
+## Observed CI closeout
+
+The [run 42248952896](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896) completed successfully for 64030571741ce8660636ce906b84af311cf8cf47. All three jobs passed: foundation, contracts (62 tests/ABI) and actual indexer acceptance. S2/AC6-AC8 and I5 are complete; #4 is closed with history retained. This supersedes the pending gates recorded during the earlier implementation stage. S3/API, S4/demo and S5/rehearsal remain pending. The subsequent documentation closeout does not change the verified code.

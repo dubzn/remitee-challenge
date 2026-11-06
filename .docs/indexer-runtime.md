@@ -7,6 +7,7 @@ Scope: S2 application integration. Ponder 0.18.5 is pinned in the npm workspace 
 Use pinned Node/npm, Docker and initialized Solidity submodules. The local deploy command accepts only loopback RPC and chain 31337; it uses Anvil's unlocked test accounts, not a backend signing key.
 
 ```sh
+git submodule update --init --depth 1
 npm ci
 npm run infra:up
 cp -n .env.example .env
@@ -71,6 +72,6 @@ npm run indexer:unit
 npm run indexer:test
 ```
 
-Typecheck generates ignored Ponder ambient types through its supported codegen command. The integration driver uses isolated loopback Anvil/PostgreSQL resources named remitee-indexer-check-*, actual contracts and the application entrypoint. Crash injection is a test-owned PostgreSQL trigger/lock, not a production fault switch. Evidence stays under ignored `.local` and resources are removed in finally. The new CI job runs this same application suite; observed remote success is a separate acceptance gate after publication.
+Typecheck generates ignored Ponder ambient types through its supported codegen command. The integration driver uses isolated loopback Anvil/PostgreSQL resources named remitee-indexer-check-*, actual contracts and the application entrypoint. Crash injection is a test-owned PostgreSQL trigger/lock, not a production fault switch. Evidence stays under ignored `.local` and resources are removed in finally. The new CI job runs this same application suite; [remote success is observed](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896) for code commit 6403057.
 
 For optional external signing/testnet use, see [wallet and testnet walkthrough](testnet-wallet.md).

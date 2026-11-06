@@ -1,6 +1,6 @@
 # Indexer design and provider options
 
-Date: 2026-11-06. Status: **Ponder 0.18.5 selected** after the [executed checkpoint/recovery follow-up](outputs/codex/2026-11-06-ponder-decision.md). Application integration is verified locally; remote CI and S3 remain pending. Refines the [canonical SDD](sdd/escrow.md), tracked in [#4](https://github.com/dubzn/remitee-challenge/issues/4); [PostgreSQL models](postgres-models.md) distinguish the selected design from the archived polling proposal.
+Date: 2026-11-06. Status: **Ponder 0.18.5 selected** after the [executed checkpoint/recovery follow-up](outputs/codex/2026-11-06-ponder-decision.md). Application integration is verified locally and in CI; S3 remains pending. Refines the [canonical SDD](sdd/escrow.md), tracked in [#4](https://github.com/dubzn/remitee-challenge/issues/4); [PostgreSQL models](postgres-models.md) distinguish the selected design from the archived polling proposal.
 
 ## Existing plan and desired behavior
 
@@ -129,7 +129,7 @@ Testnet deployment remains optional and is not executed by this documentation ta
 - [x] Implement engine-appropriate persistence and consistency checks. Use the [selected Ponder model](postgres-models.md); preserve framework ownership of internal progress.
 - [x] Reprove duplicate/conflict, ordered replay, empty blocks, crash/restart and competing-writer behavior with the final adapter (AC6-AC7).
 - [x] Reprove delay boundaries, pre-admission fork handling, canonical rollback within the recovery window, beyond-window read blocking, RPC failure and explicit replay with the final adapter (AC8).
-- [ ] Run the actual suite in CI before claiming the November 6 indexer block complete.
+- [x] Run the actual suite in CI before claiming the November 6 indexer block complete. [Observed CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896).
 
 Provider/framework capability statements were checked in primary documentation on Nov 6, 2026. The isolated Ponder proof and dependency installation are recorded separately; no provider subscription or throughput benchmark was performed. The recommendation is an engineering inference for one contract/five events and this delivery window.
 
@@ -154,4 +154,4 @@ On a crash before commit, the journal, projection and progress roll back togethe
 
 ## Application integration status
 
-The runtime is integrated under apps/indexer with [commands](indexer-runtime.md) and [local evidence](outputs/codex/2026-11-06-indexer-integration.md). Remote CI acceptance and the S3 API remain separate gates. The original experiment is retained; it is not the application entrypoint.
+The runtime is integrated under apps/indexer with [commands](indexer-runtime.md) and [local evidence](outputs/codex/2026-11-06-indexer-integration.md). S2 remote CI acceptance is verified; the S3 API remains the next gate. The original experiment is retained; it is not the application entrypoint.

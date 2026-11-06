@@ -67,3 +67,5 @@ Follow-up on Nov 4: the 32-44 hour envelope does not include a gateway/pauser, p
 - AI prompts and substantive outputs are retained, with adopted/rejected advice explained. Candidate can defend the result.
 
 The candidate authorized publishing planning, creating issues, and subsequently implementing local infrastructure/CI on Nov 4. See [foundation commands/evidence](local-development.md). The candidate subsequently authorized the contract core on Nov 5; it is implemented and verified. Full business acceptance still requires the later indexer/API/integration slices.
+
+November 6 execution closeout: S2/AC6-AC8 complete with [observed CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896) on code 6403057. See [progress](progress.md) and [evidence](outputs/codex/2026-11-06-indexer-integration.md). S3 is next; dates/budget remain conditional on remaining integration without assuming extra hours.

@@ -53,7 +53,7 @@ The read adapter obtains projection and checkpoint in one SQL statement or repea
 
 ## Remaining application acceptance
 
-The application schema/adapter and trace fields are integrated and locally verified. Required public query behavior/index plans, full S3 semantics and observed remote indexer CI remain pending. See the current integration section below and its evidence. The following polling proposal is retained only as an archived alternative.
+The application schema/adapter and trace fields are integrated and locally verified. Required public query behavior/index plans and full S3 semantics remain pending; remote indexer CI has passed. See the current integration section below and its evidence. The following polling proposal is retained only as an archived alternative.
 
 ## Archived polling alternative
 
@@ -209,4 +209,4 @@ Before calling these models implemented, prove on real PostgreSQL: exact uint256
 
 ## Integrated application schema
 
-apps/indexer/ponder.schema.ts implements the three tables. Checkpoint adds scope_key for validated descriptor/version/policy; journal retains actor, transaction_index and raw topics/data; escrows adds creation/resolution transaction/block/hash references. No automatic FK is claimed. [Evidence](outputs/codex/2026-11-06-indexer-integration.md) verifies uint256 max, actual writes/restarts and snapshot reads with a startup floor. Only Ponder writes; the query pool uses read-only transactions. Final API filters and observed remote CI remain pending.
+apps/indexer/ponder.schema.ts implements the three tables. Checkpoint adds scope_key for validated descriptor/version/policy; journal retains actor, transaction_index and raw topics/data; escrows adds creation/resolution transaction/block/hash references. No automatic FK is claimed. [Evidence](outputs/codex/2026-11-06-indexer-integration.md) verifies uint256 max, actual writes/restarts and snapshot reads with a startup floor. Only Ponder writes; the query pool uses read-only transactions. Final API filters remain pending; remote indexer CI is verified.

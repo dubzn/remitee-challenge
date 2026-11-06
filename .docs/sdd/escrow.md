@@ -1,8 +1,8 @@
 # ERC-20 escrow challenge
 
-Status: infrastructure and approved contract core verified locally and in CI; indexer integrated/verified locally with remote CI pending; API remains planned. Created: 2026-11-03. Updated: 2026-11-06.
+Status: infrastructure and approved contract core verified locally and in CI; indexer integrated and verified locally/in CI; API remains planned. Created: 2026-11-03. Updated: 2026-11-06.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
-Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI and the approved contract core are implemented; production API/indexer implementation remains a later slice; [Ponder selection evidence](../outputs/codex/2026-11-06-ponder-decision.md) is complete.
+Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. Infrastructure/CI, the approved contract core and the Ponder indexer are implemented and verified; public API and full startup/demo remain later slices. See [indexer integration evidence](../outputs/codex/2026-11-06-indexer-integration.md).
 Contract milestone: the approved [core interface/storage](../contract-design.md) is implemented and C1-C10 are complete. On Nov 6 the candidate requested closing the Nov 5 block and tracking alternatives as future improvements; see [closeout](../outputs/codex/2026-11-06-contract-closeout.md).
 Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause is now a future evaluation in [#8](https://github.com/dubzn/remitee-challenge/issues/8), outside this challenge deliverable.
 Visual walkthrough: [contract flow diagrams](../contract-flows.md). Every payout requires a new authorized resolution transaction; time alone does not execute or transfer tokens.
@@ -45,7 +45,7 @@ Within the first two hours both sender cancellation and beneficiary actions are 
 
 ### Acceptance criteria
 
-AC1-AC5 and C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC8 have [local application integration evidence](../outputs/codex/2026-11-06-indexer-integration.md), with remote CI acceptance still pending. AC9-AC12 remain unverified for the API/full submission. Foundation evidence remains [separate](../local-development.md).
+AC1-AC5 and C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC8 have [local application integration evidence](../outputs/codex/2026-11-06-indexer-integration.md), with [observed remote CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896). AC9-AC12 remain unverified for the API/full submission. Foundation evidence remains [separate](../local-development.md).
 
 | ID | Observable requirement | Required evidence |
 | --- | --- | --- |
@@ -177,7 +177,7 @@ No data migration or rollout is needed yet: the contract is implemented, but the
 
 ## Verification
 
-The implemented core has 62 passing contract tests locally and in CI, plus compiled ABI/layout evidence; see [implementation verification](../outputs/codex/2026-11-05-contract-implementation.md). Indexer behavior has local application evidence; remote CI and public API acceptance remain pending. Foundation verification is in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
+The implemented core has 62 passing contract tests locally and in CI, plus compiled ABI/layout evidence; see [implementation verification](../outputs/codex/2026-11-05-contract-implementation.md). Indexer behavior has local application evidence; remote CI is observed and public API acceptance remains pending. Foundation verification is in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
 
 Use actual PostgreSQL transactions and a separate database per parallel test worker; schema separation alone does not isolate advisory locks. Use a private Anvil per integration worker or run time-travel suites serially. Foundry unit tests use their in-process EVM independently of Docker. Compose provisions local Anvil/PostgreSQL and startup migrations; preserve/validate chain identity or reset both datasets explicitly. Before submission, review the diff, check AI claims against implementation and rehearse limitations.
 
@@ -187,8 +187,8 @@ Use actual PostgreSQL transactions and a separate database per parallel test wor
 - [x] I2: one framework writer; normalized journal and escrow facts retain exact integers, actors and successful transaction references behind the projection/persistence boundary.
 - [x] I3: identical replay is a no-op; conflicting identity/illegal transition fails; crash and restart preserve consistent progress and state, including empty blocks.
 - [x] I4: configurable extra-block admission and positive timestamp recovery window; canonical read gating handles RPC loss, recoverable forks and unrecoverable history with explicit replay.
-- [ ] I5: actual application tests run against isolated Anvil/PostgreSQL; TypeScript checks and a CI job are included. Remote CI evidence remains required before final S2 acceptance.
+- [x] I5: actual application tests run against isolated Anvil/PostgreSQL; TypeScript checks and a CI job are included. Remote CI evidence is observed for 6403057; final S2 acceptance is complete.
 
 The internal observation endpoints support S2 verification; required public filters/pagination/time-derived eligibility remain S3. CLI wallets/signers stay external to the observer. Optional testnet instructions do not authorize broadcasting or spending funds from this task.
 
-Local S2 evidence: [implementation and results](../outputs/codex/2026-11-06-indexer-integration.md). [Runtime commands](../indexer-runtime.md) and [external signing/testnet](../testnet-wallet.md). I5 stays open until remote CI is observed; S3 API acceptance remains pending.
+Local S2 evidence: [implementation and results](../outputs/codex/2026-11-06-indexer-integration.md). [Runtime commands](../indexer-runtime.md) and [external signing/testnet](../testnet-wallet.md). I5 and S2 are complete with observed CI; S3 API acceptance remains pending.

@@ -1,12 +1,12 @@
 # Remitee escrow challenge
 
-The escrow core, contract tests and local infrastructure are implemented. Local deployment and the Ponder indexer are integrated and verified locally; remote indexer CI, the public API and full lifecycle demo remain later gates. The November 5 contract milestone is closed. Emergency pause and upgradeability are possible future improvements in [#8](https://github.com/dubzn/remitee-challenge/issues/8) and [#9](https://github.com/dubzn/remitee-challenge/issues/9), outside this deliverable.
+The escrow core, contract tests and local infrastructure are implemented. Local deployment and the Ponder indexer are integrated and verified locally/in CI; the public API and full lifecycle demo remain later gates. The November 5 contract milestone is closed. Emergency pause and upgradeability are possible future improvements in [#8](https://github.com/dubzn/remitee-challenge/issues/8) and [#9](https://github.com/dubzn/remitee-challenge/issues/9), outside this deliverable.
 
 - [Local setup, commands and verification](.docs/local-development.md)
 - [Current progress and next slice](.docs/progress.md)
 - [Specification and planning index](.docs/README.md)
-- [Proposed indexer design and provider alternatives](.docs/indexer-design.md)
-- [Proposed PostgreSQL models](.docs/postgres-models.md)
+- [Indexer architecture and provider alternatives](.docs/indexer-design.md)
+- [PostgreSQL models](.docs/postgres-models.md)
 - [Ponder proof and decision: Ponder selected](.docs/outputs/codex/2026-11-06-ponder-decision.md)
 - [Work tracker](https://github.com/dubzn/remitee-challenge/issues)
 

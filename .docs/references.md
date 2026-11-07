@@ -12,12 +12,24 @@ Reviewed on 2026-11-03. These are English summaries of supplied material, not ad
 
 The challenge is a fictional evaluation exercise. Its legal notice is part of the supplied source; this planning work does not add production or legal requirements.
 
+## Stakeholder clarification recorded November 6
+
+Source: the candidate supplied an email exchange with Fernando in this conversation. This is a paraphrase of that supplied reply, not independently retrieved correspondence; the email's sending date was not supplied.
+
+| Topic | Supplied clarification | Current decision / limit |
+| --- | --- | --- |
+| API consumer | Internal processes are an acceptable use case. | Design for internal consumers. The local challenge remains anonymous; service authentication/authorization is a future deployment concern in #14, not a new employer mandate. |
+| Freshness | Expected network delay is acceptable. | Keep configurable additional-block admission, default 2. No precise latency SLA or production-safe depth was supplied. Polling/processing also contribute to delay. |
+| Cancellation window | The candidate may choose the interpretation if its reasons, benefits and trade-offs are explainable. | Candidate explicitly retains first successful canonical transaction wins: 2h is a cancellation limit while Pending, not an exclusive sender veto. |
+
+Fernando's reference to Monad was contextual, not a request to switch chains. No network migration, production latency guarantee or new chain-specific confirmation policy follows from it. See [API scope](read-api-design.md), [runtime configuration](indexer-runtime.md#configuring-admission-depth) and [contract flows](contract-flows.md).
+
 ## Challenge requirements
 
 | Source | Requirement | Planned coverage |
 | --- | --- | --- |
 | Page 1 | One contract manages many token escrows with sender, beneficiary, token, amount, and ID. | SDD AC1, AC5 |
-| Pages 1-2 | Sender cancellation before 2 hours; beneficiary confirmation/rejection before 7 days; sender recovery from 7 days. Four terminal states, no further changes. | AC2-AC4 |
+| Pages 1-2 | Sender cancellation before 2 hours; beneficiary confirmation/rejection before 7 days; sender recovery from 7 days. Constants or immutable parameters fixed at deployment are explicitly allowed. Four terminal states, no further changes. | AC2-AC4; constants selected |
 | Page 2 | Positive amount; beneficiary neither zero nor sender; no third party or owner can move escrow funds. | AC1, AC3 |
 | Page 2 | Per-escrow ERC-20 selection, including tokens that return no boolean from transfers. | AC1, AC4; token spike |
 | Page 2 | State-change events reconstruct escrows without contract storage reads; getter by ID. | AC5 |

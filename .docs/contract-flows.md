@@ -41,6 +41,8 @@ flowchart LR
 
 Released, Rejected, CancelledBySender and Expired are terminal. No second exit is possible. During the first two hours both sender cancellation and beneficiary decisions are available; the first successful transaction in canonical order wins.
 
+November 6: the [supplied employer reply](references.md#stakeholder-clarification-recorded-november-6) accepts an explained choice, and the candidate retains this rule. It permits immediate settlement but provides no exclusive two-hour sender veto. After a successful release, later cancellation reverts. A voluntary return by the beneficiary would be a separate token transaction, not a reversal or reopening of this escrow. Indexer confirmation waiting does not postpone the on-chain payout.
+
 ## 2. Creation and funding interactions
 
 One Escrow deployment holds many IDs. The ERC-20 contract maintains token balances; funding credits the Escrow contract's address, and resolution debits that address. The API holds no tokens or wallet signing keys.

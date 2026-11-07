@@ -36,10 +36,24 @@ Root commands load `.env` when present; exported environment variables take prec
 | DATABASE_URL | PostgreSQL connection string. Local values in `.env.example` are development-only. |
 | DEPLOYMENT_FILE | Versioned descriptor: chain ID/genesis, Escrow address, deployment block/hash/transaction and compiled runtime code hash. |
 | INDEXER_SCHEMA | Explicit data scope, default escrow_index. New replay uses a new schema; no automatic deletion. |
-| CONFIRMATION_DELAY | Additional blocks before ingestion, default 2. Not consensus finality. |
+| CONFIRMATION_DELAY | Additional blocks after inclusion before ingestion; integer 0..10000, default 2. Zero is explicit no-extra-delay mode. Not consensus finality. |
 | REORG_WINDOW_SECONDS | Positive recovery window between block timestamps, default 180. Independent of block admission depth. |
 | INDEXER_POLL_MS | Poll interval, default 1000 ms. |
 | INDEXER_PORT | Internal loopback HTTP port, default 42069. |
+
+### Configuring admission depth
+
+CONFIRMATION_DELAY already controls the RPC view supplied to Ponder, the startup catch-up floor and the observation's delay/backlog checks. The 2 is a fallback and example value, not a fixed runtime policy. Set the value in .env before starting the indexer; an exported value overrides .env. This setting is read at process startup, not hot-reloaded.
+
+The value counts additional descendant blocks, excluding the inclusion block: an event in block 100 with delay 2 becomes eligible when head reaches 102. This differs from confirmation-count conventions that count inclusion as one. Actual API delay also includes polling, RPC and processing time; a block-time estimate is not an end-to-end freshness guarantee.
+
+Changing delay changes the persisted policy scope key. Stop the old instance and use a fresh schema with explicit replay; do not edit its checkpoint or reuse rows admitted under the old policy. For example, with a validated deployment and an unused schema:
+
+```sh
+CONFIRMATION_DELAY=6 INDEXER_SCHEMA=escrow_delay_6 npm run indexer:start -- --replay
+```
+
+Keep the chosen settings in .env for subsequent restarts. Local deployment currently mines two extra setup blocks; if a larger delay is selected, mine sufficient additional Anvil blocks before expecting readiness. Polling alone does not advance an idle local chain. The recovery window remains a separate seconds-based setting.
 
 Startup validates chain, genesis, deployment receipt/block, contract address and runtime code against the descriptor. Before spawning the engine, the launcher captures a startup floor at least as high as persisted progress and the current eligible head. Public observation stays unavailable until replay reaches that floor, preventing temporary restart rollback from being published as a new escrow outcome. It also compares the persisted scope key, including projection version/admission/recovery policy, before starting Ponder. An incompatible scope is refused without repointing or deleting rows. Local and testnet data must use separate databases/scopes.
 

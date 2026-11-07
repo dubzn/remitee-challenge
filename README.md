@@ -7,6 +7,7 @@ The escrow core, contract tests and local infrastructure are implemented. Local 
 - [Specification and planning index](.docs/README.md)
 - [Indexer architecture and provider alternatives](.docs/indexer-design.md)
 - [PostgreSQL models](.docs/postgres-models.md)
+- [Token compatibility and external freeze limits](.docs/token-support.md)
 - [Ponder proof and decision: Ponder selected](.docs/outputs/codex/2026-11-06-ponder-decision.md)
 - [Work tracker](https://github.com/dubzn/remitee-challenge/issues)
 

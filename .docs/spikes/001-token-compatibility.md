@@ -30,3 +30,5 @@ Exit: candidate can explain both the compatibility promise and why hostile or ex
 ## Desk review result
 
 Keep the strict received-amount policy, SafeERC20, all-entry reentrancy guards, and beneficiary-self rejection as the architecture proposal. Reject zero/code-less token addresses explicitly. Dedicated escrow custom errors cover domain rules; library/token reverts may propagate, but token-provided revert data is untrusted and can imitate other selectors. Do not infer error origin from its selector alone. Do not build pull-payment accounting or fee support. Verify the listed cases during the contract slice rather than creating a prototype now.
+
+November 6 follow-up: the [token/freeze matrix](../token-support.md) makes the implemented compatibility promise, shared-address risk and conditional recovery explicit. Generic transfer-failure tests are implemented; issuer-specific blacklist/pause integration remains future evaluation. No extra token support or recovery authority is added.

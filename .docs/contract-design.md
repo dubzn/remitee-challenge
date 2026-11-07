@@ -97,11 +97,39 @@ With contiguous successful IDs and no deletion, `id == 0 || id > _lastEscrowId` 
 
 Calculate deadlines in uint256 and use checked conversion, such as SafeCast.toUint64, for every narrowing before external funding. A bare uint64 cast can truncate. Three uint64 timestamps and the enum naturally share one slot with this field order; the compiled struct uses five value slots. The implemented timestamps remain uint64. This is observed layout evidence, not a measured gas claim or a frozen proxy layout; inspection is informational for this core. uint256 timestamps are a valid alternative, not another requirement.
 
+## Timing configuration: current policy and future alternatives
+
+The current CANCELLATION_WINDOW and ESCROW_TTL are compile-time constants: 2 hours and 7 days. Challenge page 1 explicitly permits constants or immutable parameters fixed at deployment. It does not request caller-selected durations per escrow. These are different configuration boundaries:
+
+| Alternative | Scope and recommendation |
+| --- | --- |
+| Current constants | Implemented; retain for this submission and its existing acceptance evidence. |
+| Constructor-set immutable durations | Expressly permitted configuration mechanism. Smallest option if deployment-level configuration is required; use 2h/7d for the challenge deployment. Every escrow in that deployment shares the settings, with no later setter. Not implemented. |
+| Custom durations on creation | Generic-product extension, outside this challenge baseline. Different IDs may have different terms; requires an explicit new behavior decision and tests. Not implemented. |
+
+If per-escrow terms become a concrete requirement, a clearly named proposed entry point is:
+
+```solidity
+function createEscrowWithTerms(
+    address beneficiary,
+    address token,
+    uint256 amount,
+    uint256 cancellationWindow,
+    uint256 escrowTtl
+) external returns (uint256 escrowId);
+```
+
+This is a design sketch, not an approved ABI change. Keep the existing createEscrow entry using the documented defaults. A future shared internal creation path should preserve the original caller, funding checks and guard on every mutating external entry; do not self-call an external creation function. The existing per-ID createdAt/cancelDeadline/expiresAt fields are enough: compute once and retain immutable terms, without adding per-ID durations or a setter. The current constant getters would need to be documented as defaults if custom IDs coexist; they would no longer describe every ID's windows.
+
+Before accepting either extension, specify positive durations and a policy such as cancellationWindow < escrowTtl, explicit product bounds, and checked uint256 addition/uint64 deadline conversion before funding. Those constraints are proposed product choices, not extra quoted challenge rules. Present custom terms clearly; sender selection alone does not prove beneficiary agreement to unusual terms. Test defaults, varied terms, invalid ordering/zero/overflow, exact boundaries and unchanged terminal/caller/funding rules.
+
+Existing creation events already contain absolute deadlines, so the projection and future API should keep using those values without recomputing 2h/7d. Any implementation still requires ABI checks, tests, deployment scripts/descriptors and documentation to be updated together. Constructor arguments also change deployment/runtime identity. The existing non-upgradeable deployment cannot acquire new entry points or settings; a new deployment has a separate data scope, while old escrows retain old rights and funds. This proposal adds no current S1/S3 completion gate.
+
 ## Core execution rules
 
 1. Creation is guarded throughout: validate inputs/timestamps, read the prior token balance, transfer, read the new balance and check the exact received delta, then record a funded Pending escrow, advance the ID and emit creation. No provisional record is exposed during token callbacks. A failure reverts all effects, except any separate prior approval transaction.
 2. Each resolution is guarded, checks existence/Pending/caller/time, sets the terminal state, transfers to the fixed recipient and emits its one resolution event. Transfer failure restores Pending and all transaction-local effects.
-3. Supported tokens are balance-preserving standard/no-return ERC-20s. False-return transfers fail. Fee/rebasing/blacklist/malicious-economics guarantees, permit and a whitelist are outside this core. Zero/self/code-less token rejection and beneficiary equal to this contract are implemented extra validations.
+3. Supported tokens are balance-preserving standard/no-return ERC-20s. False-return transfers fail. Fee/rebasing/blacklist/malicious-economics guarantees, permit and a whitelist are outside this core. Zero/self/code-less token rejection and beneficiary equal to this contract are implemented extra validations. See the [token/freeze matrix](token-support.md) for admission, failed payouts and conditional recovery; a successful deposit is not a future availability guarantee.
 4. Multiple IDs share token balances. Representative tests check that, under supported semantics, balances cover Pending liabilities; these examples are not a universal proof. Fixing the token per ID and guarding every mutating entry point prevents an escrow action from redirecting another ID to a different asset. A hostile token can still lie about or strand the backing of its own escrows; a callback test against a second supported token checks contract-level cross-token isolation. Donations may make balances larger; they are not credited to an escrow or claimable through a new rescue method.
 
 ## SDD completion checks

@@ -1,6 +1,6 @@
 # Local foundation and verification
 
-Infrastructure and contract-core commands, updated Nov 5, 2026. Foundation tracks [#1](https://github.com/dubzn/remitee-challenge/issues/1)/[#2](https://github.com/dubzn/remitee-challenge/issues/2); contract implementation tracks [#3](https://github.com/dubzn/remitee-challenge/issues/3). There is no deployed escrow, API, indexer or domain migration yet.
+Infrastructure and contract-core commands, updated November 7, 2026. Foundation tracks [#1](https://github.com/dubzn/remitee-challenge/issues/1)/[#2](https://github.com/dubzn/remitee-challenge/issues/2); contracts track [#3](https://github.com/dubzn/remitee-challenge/issues/3). Deployment, indexer and read API are now implemented; use the [application runtime guide](indexer-runtime.md) after the foundation setup below. Full setup/demo orchestration remains S4.
 
 ## Prerequisites and quick start
 

@@ -156,3 +156,9 @@ Runner usage: current session 96% remaining, resets Nov 6 at 6:40pm; current wee
 November 6: candidate-requested ask-claude xhigh review, retaining Opus from earlier reviews. Subscription preflight ready (pro); read-only consult exited 0, no stderr. [Exact prompt](2026-11-06-read-api-spec-prompt.md), [unmodified response](2026-11-06-read-api-spec-review.md), [Codex corrections and verification](../codex/2026-11-06-read-api-spec.md). Verdict READY_WITH_FIXES. Codex corrected health503 progress, component meanings, strict query wording and startup-context planning. The suggestion to infer unrecoverability after a wall-clock wait was rejected using pinned Ponder source. Claude performed no edits/tests; the corrected spec was independently validated, not re-approved in a second model call. S3 runtime remains pending.
 
 Runner usage: current session 93% remaining, resets Nov 7 at 1:29am; current week (all models) 92% remaining, resets Nov 8 at 11:59am (America/Buenos_Aires).
+
+## S3 implementation review
+
+November 7: candidate-requested Opus/xhigh read-only review through the subscription runner; exit 0, no stderr. [Exact prompt](2026-11-07-read-api-implementation-prompt.md), [unmodified response](2026-11-07-read-api-implementation-review.md) and [Codex disposition/evidence](../codex/2026-11-07-read-api-implementation.md). Verdict READY_WITH_FIXES, no blocking code defect. Codex fixed component startup-floor diagnostics and RPC header attribution, strengthened the proposed regression gaps and passed a full rerun. Claude ran no tests and saw partial pre-fix evidence; final local success is Codex's observation, not a second model approval. Publication/remote CI remain pending.
+
+Runner usage: current session 80% remaining, resets Nov 7 at 1:30am; current week (all models) 91% remaining, resets Nov 8 at 12pm (America/Buenos_Aires).

@@ -1,6 +1,6 @@
 # Ponder indexer runtime
 
-Scope: S2 application integration. Ponder 0.18.5 is pinned in the npm workspace `apps/indexer`. The archived experiment remains independent. Public filtering, pagination and time-derived eligibility are S3; internal observation endpoints below support indexer operation and acceptance.
+Scope: S2 indexer and S3 read API. Ponder 0.18.5 is pinned in the npm workspace `apps/indexer`. The archived experiment remains independent. Public filtering, pagination and time-derived eligibility are implemented on a separate consumer listener; internal observation endpoints remain diagnostic.
 
 ## Local commands
 
@@ -22,9 +22,13 @@ In another terminal:
 ```sh
 curl http://127.0.0.1:42069/observed/health
 curl http://127.0.0.1:42069/observed/escrows
+curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3000/escrows/1
+curl 'http://127.0.0.1:3000/escrows?status=ExpiredRecoverable&limit=20'
+curl http://127.0.0.1:3000/openapi.yaml
 ```
 
-These are internal S2 paths. Ponder's reserved `/health` and `/ready` report engine state and must not substitute for application health. The current listener binds loopback. The future S3 API will expose the required public routes and query behavior.
+The /observed paths are internal. Ponder's reserved /health and /ready report engine state and do not replace consumer application health. npm run indexer:start launches both listeners on loopback: the consumer defaults to port 3000 and the engine to 42069. See the [HTTP contract](api/README.md). The launcher shares the computed startup floor and resolved policy with both children, stops siblings on any unexpected child exit and recomputes context on restart. The API entry refuses a missing floor. This command assumes existing infrastructure/deployment; full one-command setup/demo remains S4.
 
 ## Configuration and data scope
 
@@ -40,6 +44,7 @@ Root commands load `.env` when present; exported environment variables take prec
 | REORG_WINDOW_SECONDS | Positive recovery window between block timestamps, default 180. Independent of block admission depth. |
 | INDEXER_POLL_MS | Poll interval, default 1000 ms. |
 | INDEXER_PORT | Internal loopback HTTP port, default 42069. |
+| API_PORT | Consumer loopback HTTP port, default 3000; must differ from INDEXER_PORT. This operational setting does not change the persisted data scope. |
 
 ### Configuring admission depth
 
@@ -83,9 +88,11 @@ RPC and SQL cannot form one atomic cross-system snapshot. A reorg after the last
 npm run typecheck
 npm run indexer:typecheck
 npm run indexer:unit
+npm run api:spec
+npm run api:unit
 npm run indexer:test
 ```
 
-Typecheck generates ignored Ponder ambient types through its supported codegen command. The integration driver uses isolated loopback Anvil/PostgreSQL resources named remitee-indexer-check-*, actual contracts and the application entrypoint. Crash injection is a test-owned PostgreSQL trigger/lock, not a production fault switch. Evidence stays under ignored `.local` and resources are removed in finally. The new CI job runs this same application suite; [remote success is observed](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896) for code commit 6403057.
+Typecheck generates ignored Ponder ambient types through supported codegen. Integration uses isolated loopback Anvil/PostgreSQL resources named remitee-indexer-check-*, actual contracts and the shared application entrypoint. It now covers public HTTP/schema checks, time/filter/pagination behavior, read snapshots, dependency failures and sibling lifecycle as well as S2 recovery. Crash injection is a test-owned PostgreSQL trigger/lock, not a production switch. Evidence stays under ignored .local and resources are removed in finally. The CI job is configured for these same checks. The [previous observed success](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896) belongs to S2 commit 6403057; it does not establish remote CI success for the new S3 changes.
 
 For optional external signing/testnet use, see [wallet and testnet walkthrough](testnet-wallet.md).

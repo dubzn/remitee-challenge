@@ -1,6 +1,6 @@
 # S3 HTTP contract and examples
 
-Status: spec-first draft for candidate review. [openapi.yaml](openapi.yaml) is the single machine-readable HTTP contract; its examples are synthetic. No consumer API handler, server or documentation endpoint is implemented by this step. S3/AC9-AC10 and documentation issue #11 remain open until actual responses and CI are verified. The [SDD](../sdd/escrow.md) owns behavior and [progress](../progress.md) owns delivery status.
+Status: implemented with local Anvil/PostgreSQL/HTTP evidence on November 7. [openapi.yaml](openapi.yaml) is the single machine-readable HTTP contract; embedded examples remain synthetic. Actual consumer responses, raw spec serving and offline Node checks are implemented in application acceptance. [Review, fixes and verification](../outputs/codex/2026-11-07-read-api-implementation.md) are recorded separately; remote CI is not inferred from local success. The [SDD](../sdd/escrow.md) owns behavior and [progress](../progress.md) owns delivery status.
 
 ## Read this first
 
@@ -10,7 +10,7 @@ Status: spec-first draft for candidate review. [openapi.yaml](openapi.yaml) is t
 | GET /escrows | `{items, page, observation}` | 400 invalid filters/pagination; 503 unready/unverifiable. Zero matches is 200. |
 | GET /health | Readiness, component states and progress | 200 ready; 503 not ready with diagnostic progress; 400 unsupported query input. |
 
-The server entry names a planned loopback listener on port 3000. Ponder keeps its separate internal listener and native health routes. This is the public consumer interface within the local application, not internet deployment or a new independent platform. The supplied employer reply accepts internal-process consumers; local access remains anonymous. AuthN/AuthZ and caching remain future issues #14/#13.
+The consumer listener binds loopback on API_PORT (default 3000); the spec's port variable documents overrides. Ponder keeps its separate internal listener and native health routes. This is the consumer interface within the local application, not internet deployment or an independent platform. The supplied employer reply accepts internal-process consumers; local access remains anonymous. AuthN/AuthZ and caching remain future issues #14/#13.
 
 ## Inputs and pagination
 
@@ -58,34 +58,35 @@ Expected extra-block waiting alone is not failure. After startup, no eligible-ba
 
 ## Selected implementation boundary
 
-Use native Node 24 node:http for the three consumer GET routes and the later raw spec resource; no new HTTP framework is needed. Ponder's existing Hono facade stays internal. The planned consumer API uses its own loopback listener (default 3000); this is one local application with a shared launcher, not a new microservice deployment.
+Native Node 24 node:http serves the three consumer GET routes and GET /openapi.yaml; no HTTP framework was added. Ponder's Hono facade stays internal. Both run as one local application with a shared launcher and separate loopback listeners.
 
-Extend the existing launcher to compute the startup floor once, then start Ponder and the consumer listener with the same resolved deployment file, database/schema, delay, recovery window, INDEXER_PORT and INDEXER_STARTUP_MIN_BLOCK. The API entry must refuse a missing launcher floor instead of silently using settings()'s zero default; an explicitly computed zero is valid. Both children must use the same scope key. If either exits, stop the sibling and close resources; a new launch recomputes the context. This preserves the existing restart guard without a new durable store. These are selected plans, not implemented lifecycle behavior.
+The launcher computes the startup floor once, then starts both children with the same resolved deployment file, database/schema, delay, recovery window, INDEXER_PORT and INDEXER_STARTUP_MIN_BLOCK. The API entry refuses a missing floor; an explicitly computed zero is valid. Both children derive the same scope key. If either exits, the launcher stops the sibling; a new launch recomputes context. No durable store was added. Run npm run indexer:start after the existing infrastructure/deployment setup in the [runtime guide](../indexer-runtime.md).
 
 ## Examples to inspect
 
 The OpenAPI components/examples section contains pending and released detail, a large ID/max uint256 amount, an expired-but-unclaimed list, an empty list, invalid input, admitted absence, unavailable read and ready/RPC-failed/startup-catch-up health. These are fixtures, not observed deployment results.
 
-The following commands target the future listener and are not runnable against the current S2-only application yet:
+With the application running on the default API port:
 
 ```sh
 curl http://127.0.0.1:3000/escrows/1
 curl 'http://127.0.0.1:3000/escrows?status=ExpiredRecoverable&limit=20&offset=0'
 curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3000/openapi.yaml
 ```
 
-## Validation and next implementation slice
+## Validation and remaining delivery gates
 
-Local tooling is isolated under ignored .local/openapi-tools; no application dependency or CI job was added. Structural validation used openapi-spec-validator 0.7.2 with PyYAML 6.0.3. A separate temporary checker validated every response-example use against Draft 2020-12 schemas, the numeric-bound annotation and fixture invariants; these are specification checks, not HTTP behavior coverage. The [review disposition](../outputs/codex/2026-11-06-read-api-spec.md) records the final result and limits.
+Pinned Node dev tools validate the canonical artifact offline: @redocly/openapi-core 2.76.0 checks OpenAPI structure; yaml 2.9.1 and Ajv 8.20.0 Draft 2020-12 validate examples and actual HTTP responses, including x-maximum-decimal bounds. There is no second schema source or runtime validation dependency. npm ci installs the lockfile. The [November 6 review](../outputs/codex/2026-11-06-read-api-spec.md) remains historical specification evidence.
 
-To repeat structural validation with the same top-level tool versions:
+Run the same checks as the existing CI application job:
 
 ```sh
-python3 -m venv .local/openapi-tools
-.local/openapi-tools/bin/python -m pip install 'openapi-spec-validator==0.7.2' 'PyYAML==6.0.3'
-.local/openapi-tools/bin/python -m openapi_spec_validator .docs/api/openapi.yaml
+npm run api:spec
+npm run api:unit
+npm run indexer:test
 ```
 
-Next: implement the consumer listener, input parsing, bounded SQL queries and lossless serialization with the existing snapshot/canonical guards. Test actual Anvil/PostgreSQL/HTTP behavior for filters before pagination, time boundaries, terminal states, empty/absent records and RPC/DB/startup/reorg failures. Then validate real responses against this same file and integrate pinned tooling into the existing Node CI. Do not duplicate the specification or count this draft as passing AC9/AC10.
+The integrated test uses real contracts/Ponder/PostgreSQL and checks public filters, pages, exact time boundaries, transaction traces, repeatable snapshots, 400/404/503 and RPC/DB/startup/reorg behavior. It also verifies raw spec availability during dependency failure and shared-child lifecycle. Remote CI still requires publishing and observing this commit. NatSpec/forge doc and the clean full-start/demo remain #12/S4; Swagger UI is optional.
 
-Primary references: [OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0), [validator project](https://github.com/python-openapi/openapi-spec-validator).
+Primary references: [OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0), [Ajv schema support](https://ajv.js.org/json-schema.html), [Redocly core](https://github.com/Redocly/redocly-cli/tree/main/packages/core).

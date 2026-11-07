@@ -1,6 +1,6 @@
 # Read API: reading guide and scope
 
-Status: the S3 HTTP specification and examples are drafted/reviewed; handlers remain next. Contracts and the Ponder indexer are implemented. The challenge baseline uses direct PostgreSQL reads, no application cache and no AuthN/AuthZ middleware. The SDD owns acceptance; [OpenAPI and its reading guide](api/README.md) define the proposed exact HTTP schemas and implementation boundary.
+Status: S3 handlers and raw specification serving are implemented and locally verified on November 7; remote CI remains pending publication. The baseline uses direct PostgreSQL reads without cache/AuthN/AuthZ middleware. The SDD owns acceptance; [OpenAPI and guide](api/README.md) define the exact contract, with [local evidence and review](outputs/codex/2026-11-07-read-api-implementation.md).
 
 The [supplied employer clarification](references.md#stakeholder-clarification-recorded-november-6) accepts internal-process consumers and expected network delay. Here, public API means the documented consumer-facing HTTP contract, not a decision to publish it on the internet. The local anonymous baseline is a challenge scope choice; a real internal deployment should define service identity and access policy. No quantified freshness SLA or authentication mechanism was mandated.
 
@@ -14,7 +14,7 @@ The [supplied employer clarification](references.md#stakeholder-clarification-re
 | [Indexer runtime](indexer-runtime.md) | Current snapshot/canonical guard, observation metadata, startup readiness and replay behavior that S3 should reuse. |
 | [Progress](progress.md) | What is implemented and the remaining S3-S5 gates. OpenAPI is tracked in #11; Swagger UI is optional polish after the candidate's clarification. |
 
-## Planned public contract
+## Implemented public contract
 
 | Operation | Purpose |
 | --- | --- |
@@ -36,7 +36,7 @@ flowchart LR
     Derive --> Response[Read response and observation metadata]
 ```
 
-This is the intended S3 flow, not a claim that final HTTP handlers/filters are already implemented. Existing /observed endpoints are internal S2 diagnostics. Static OpenAPI documentation must remain independent of data readiness while the API process is running.
+This flow is implemented by the consumer listener and shared snapshot/canonical guard. Existing /observed endpoints remain internal S2 diagnostics. GET /openapi.yaml is static and independent of data readiness while the API process runs.
 
 Token availability is separate from time eligibility: an ExpiredRecoverable record may still fail to pay because of an issuer freeze. The [token/freeze matrix](token-support.md) explains those limits without adding token-status fields or polling to S3.
 

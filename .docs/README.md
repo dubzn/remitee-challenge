@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: infrastructure, contract core and Ponder indexer verified locally and in CI; public API/demo remain planned. Updated: 2026-11-06. All authored documentation is in English.
+Status: infrastructure/contracts/indexer have local and observed CI evidence; S3 API is implemented and locally verified, with publication/remote CI pending. Full startup/demo remains S4. Updated: 2026-11-07. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. Foundation, the approved contract core and the Ponder indexer are implemented with local and observed CI evidence; public API, full startup/demo and rehearsal remain later slices. Start with [local commands and verification](local-development.md). The November 5 contract milestone is [closed with evidence](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrade alternatives are future improvements, not completion gates.
+The intended outcome is one reviewable submission within one week. S3 now has [implementation, local acceptance and review](outputs/codex/2026-11-07-read-api-implementation.md); NatSpec, full startup/demo and rehearsal remain. Start with [local commands](local-development.md). The November 5 contract milestone is [closed](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrades stay future work.
 
 ## Start here
 
@@ -10,7 +10,7 @@ The intended outcome is one reviewable submission within one week. Foundation, t
 
 [Read API guide](read-api-design.md): recommended reading, planned endpoints and the cache/AuthN/AuthZ future backlog. Start here for S3.
 
-[Reviewed HTTP contract and examples](api/README.md): the OpenAPI draft, exact public types/errors and selected implementation boundary. Handlers and HTTP acceptance are next.
+[Implemented HTTP contract and examples](api/README.md): canonical OpenAPI, runnable commands, exact public types/errors and local HTTP evidence.
 
 1. [Source review and role alignment](references.md): what the challenge actually requires and how the JD informs quality.
 2. [Escrow specification and architecture](sdd/escrow.md): the proposed behavioral contract, boundaries, acceptance criteria, and work slices.

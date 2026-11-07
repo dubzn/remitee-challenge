@@ -39,9 +39,11 @@ Frontend, production/mainnet deployment, mandatory testnet deployment, transacti
 | Pending | Recover | Sender | `t >= expiresAt` | Expired | Sender |
 | Any terminal state | Any resolution | Anyone | Any | Revert | No transfer |
 
-Proposed constants: `cancelDeadline = createdAt + 2 hours`; `expiresAt = createdAt + 7 days`. At exactly 2 hours cancellation fails. At exactly 7 days confirmation/rejection fail and recovery succeeds. Passing time does not automatically send a transaction or refund tokens.
+Implemented constants: `cancelDeadline = createdAt + 2 hours`; `expiresAt = createdAt + 7 days`. At exactly 2 hours cancellation fails. At exactly 7 days confirmation/rejection fail and recovery succeeds. Passing time does not automatically send a transaction or refund tokens. Challenge page 1 also permits immutable parameters fixed at deployment; constants are our selected option. Per-escrow custom durations are a separate future proposal in [contract design](../contract-design.md#timing-configuration-current-policy-and-future-alternatives), not implemented or added to acceptance.
 
 Within the first two hours both sender cancellation and beneficiary actions are possible. The first successful transaction in canonical chain order wins; there is no sender priority.
+
+The [supplied stakeholder reply](../references.md#stakeholder-clarification-recorded-november-6) accepts an explained choice, and the candidate explicitly retains this interpretation. Benefit: the beneficiary can settle immediately without a forced two-hour wait. Trade-off: cancellation is available only while Pending, not guaranteed for the entire two hours. If confirmation succeeds first, release is terminal and later cancellation reverts; neither the API's admission delay nor an administrator provides a reversal path.
 
 ### Acceptance criteria
 
@@ -83,16 +85,17 @@ These are proposals, not additional requirements from Remitee.
 
 | Decision | Proposal | Reason / limit |
 | --- | --- | --- |
-| Stack | Foundry/Anvil; Solidity 0.8.x; OpenZeppelin utilities; Node.js/TypeScript, viem, Fastify, PostgreSQL with node-postgres. | Candidate selected PostgreSQL and confirmed Foundry + TypeScript familiarity. Pin compatible versions and include real PostgreSQL setup/migrations/tests. |
+| Stack | Foundry/Anvil; Solidity 0.8.x; OpenZeppelin; Node.js/TypeScript, viem, PostgreSQL/node-postgres and Ponder. S3 selects native node:http for the consumer listener; existing Hono remains internal. | This supersedes the early unimplemented Fastify proposal. No new HTTP framework is needed for three GET routes. See the selected launcher boundary in the HTTP contract guide. |
 | Reuse | Prefer compatible maintained primitives or an exact-fit escrow over unnecessary custom mechanisms. Current recommendation is a minimal domain contract on SafeERC20/ReentrancyGuard. | Reviewed OpenZeppelin Escrow/VestingWallet are not drop-in matches; a wrapper still needs actor/time/token correctness and adversarial tests. See design review. |
 | Authority, challenge baseline | Current direct contract has no owner, pause, upgrade or rescue method; API independently read-only. #8/#9 evaluate future alternatives. | The challenge forbids privileged fund movement, not an owner or pause mechanism explicitly. The chosen scope preserves actor/time availability; future authority changes need separate assessment. |
 | Token policy, candidate-confirmed | Simple balance-preserving ERC-20 behavior plus mandatory no-return compatibility; reject deposits with a received-amount mismatch. | Per-escrow token choice remains; no fee/rebase/allowlist extension. Demo may use a simple mock, but required no-return tests remain. |
 | Beneficiary validation | Reject zero, sender, and the escrow contract itself. | The first two are required; the third is a proposed extra guard against releasing funds back into the escrow with no withdrawal path. |
-| Time source | Latest successfully observed canonical head timestamp, cached by the indexer, with source metadata in API/health. | Agrees with local EVM time travel. Host wall-clock time is not authoritative; never substitute it silently if RPC observation fails. |
+| Time source | Canonical head timestamp captured per response by the read API and reused for that response's query/derivation. | No indexer head cache or host-clock fallback. Keep source metadata and canonical rechecks; an RPC failure makes that response unavailable. |
 | Read model | Preserve `onChainStatus`; derive `effectiveStatus`, `canCancel`, and `canRecover` using the event-provided deadlines. | Never recompute deadlines in the API. `ExpiredRecoverable` means recorded Pending with elapsed TTL. `Expired` means a recovery event exists. |
 | Filter semantics | `status` filters `effectiveStatus`, including `ExpiredRecoverable`, in SQL before pagination; omitted filters include all. Sender/beneficiary filters combine with AND. | Expired pending escrows must be discoverable. All rows in one response use the same observed chain timestamp. |
 | Pagination and optional time filters | Bounded `limit`/`offset`, newest first by decreasing ID. Defer `createdFrom` inclusive / `createdTo` exclusive until mandatory slices are stable. | `limit=N` gives latest N matches. Required filters run before pagination; optional time filters use the same rule if added. No cross-request snapshot promise. |
-| Confirmation policy, proposed | Configurable depth; propose local demo delay 2 additional blocks after inclusion, with 0 an explicit fast-test mode. Project only eligible canonical events. | `eligibleHead = head - delay`; not a wallet/library confirmation-count convention or consensus finality. Mine extra blocks in the local demo. No production N is selected. |
+| API consumer, stakeholder-clarified | Internal processes are an acceptable consumer. Local demo access remains anonymous; evaluate service AuthN/AuthZ separately in #14. | The reply does not mandate a provider, credential scheme or new implementation. Read-only access does not itself establish an access policy. |
+| Confirmation policy, implemented | CONFIRMATION_DELAY selects integer 0..10000 additional blocks after inclusion; default 2, zero explicit no-extra-delay mode. Project only eligible canonical events. | `eligibleHead = max(0, head - delay)`; not a wallet/library confirmation-count convention or consensus finality. Policy changes require fresh data scope/replay. Expected network delay was accepted; no production N or latency SLA was selected. |
 | Reorg recovery | Ponder rollback/replay inside an explicit positive timestamp window; canonical read guard for every response. Beyond-window or identity mismatch blocks reads until validated replay. | No automatic wipe on identity/RPC failure; the checkpoint may rewind only as part of verified framework rollback or explicit replay. |
 
 ## Technical plan
@@ -106,7 +109,7 @@ flowchart LR
     Indexer -->|atomic events + projection + cursor| DB[(PostgreSQL)]
     Client[HTTP caller] --> API[Read-only API module]
     DB --> API
-    Indexer -->|cached observed head/time and health| API
+    Chain -->|captured canonical head/time via RPC| API
     subgraph Service[Local application: Ponder writer + read API]
         Indexer
         API
@@ -123,7 +126,7 @@ The chain owns outcomes and balances. PostgreSQL is a rebuildable projection. Th
 - Validate caller/state/time before resolution. Set terminal state before external payout; payout failure reverts the whole transaction.
 - Explicitly reject zero token address and addresses with no contract code; check received balance delta on creation. Do not depend on token symbol or decimals for correctness.
 - Created event contains all mandatory fields plus `createdAt = block.timestamp`; index ID, sender, and beneficiary. This supplies creation-time filtering without guessing timestamps or changing the API's deadline arithmetic. Terminal events contain ID and actor. Events and log metadata reconstruct the record and transaction hashes.
-- Do not promise recovery if a token later blacklists the escrow, pauses transfers, rebases, or lies about its balance. Clearly state those asset-level limits.
+- Do not promise recovery if a token later blacklists the escrow, pauses transfers, rebases, or lies about its balance. The [token compatibility and freeze matrix](../token-support.md) explains shared-address exposure, conditional exits and current test limits. Detected payout failure restores Pending; TTL does not override issuer controls or stop during a pause. No allowlist, token monitor or rescue extension is introduced.
 - Conservation tests distinguish escrow liabilities from unsolicited direct token transfers: balance is at least pending liabilities under supported assumptions; equality only applies when the test excludes donations.
 
 ### Event processing boundary
@@ -159,7 +162,9 @@ Mined reverts can still be observed through transaction receipts when their hash
 
 Compute derived fields at read time; no scheduled expiration updates and no synthetic chain events. `canCancel` and `canRecover` describe role/time eligibility for a recorded pending escrow at the reported observation, not a guarantee that a new transaction will succeed. Confirmation lag, concurrent resolutions, and token restrictions remain possible.
 
-If there is no usable chain-time observation or the indexer is halted/rebuilding, return 503 for escrow reads. An observed failed RPC poll makes the observation unavailable until polling succeeds again. An unchanged old head timestamp alone does not imply an outage on idle Anvil. Keep 503 on RPC failure for the baseline; serving stale records with nullable eligibility is a deferred alternative. Report health and last-known metadata for diagnosis.
+If there is no usable chain-time observation or the indexer is halted/rebuilding, return 503 for escrow reads. A failed per-response RPC probe makes that response unavailable; a later request must capture and validate a new observation. An unchanged old head timestamp successfully queried on idle Anvil is not an outage. Keep 503 on RPC failure; stale-success fallback remains deferred. Health503 can expose partial diagnostic metadata obtained during its probes, with null unavailable values, configured delay/window and nullable lag/backlog. It never promotes those diagnostics to a verified observation.
+
+The [OpenAPI contract](../api/openapi.yaml) and [HTTP reading guide](../api/README.md) now own exact envelopes, decimal-string Unix timestamps, public field names, proposed pagination bounds and error precedence. The older design-review response is historical. Spec validation/review does not close AC9/AC10. The planned native Node consumer listener and Ponder must inherit one launcher-computed startup floor and resolved scope/policy; a directly started API cannot silently default that floor to zero. No freshness SLA/backlog threshold is selected after startup, so ready responses retain explicit progress. See the [review disposition](../outputs/codex/2026-11-06-read-api-spec.md).
 
 ## Tasks
 
@@ -192,3 +197,12 @@ Use actual PostgreSQL transactions and a separate database per parallel test wor
 The internal observation endpoints support S2 verification; required public filters/pagination/time-derived eligibility remain S3. CLI wallets/signers stay external to the observer. Optional testnet instructions do not authorize broadcasting or spending funds from this task.
 
 Local S2 evidence: [implementation and results](../outputs/codex/2026-11-06-indexer-integration.md). [Runtime commands](../indexer-runtime.md) and [external signing/testnet](../testnet-wallet.md). I5 and S2 are complete with observed CI; S3 API acceptance remains pending.
+
+## Requested documentation (November 6)
+
+Candidate-requested additions, not literal employer instructions. See [tooling and review](../outputs/codex/2026-11-06-documentation-tooling.md). Functional S1/S2 stay closed; these checks extend the AC12 documentation gate.
+
+- [ ] D1: [#11](https://github.com/dubzn/remitee-challenge/issues/11): one OpenAPI 3.1 source for the three public GET operations, checked examples/responses, usable HTTP examples and raw docs availability during RPC/DB failure while the API process remains active. Draft alongside S3; do not invent operations. Swagger UI is optional final polish after the candidate follow-up, not a submission gate; UI-specific checks apply only if implemented.
+- [ ] D2: [#12](https://github.com/dubzn/remitee-challenge/issues/12): accurate public NatSpec, verified inheritance and reproducible forge doc Markdown/HTML using pinned Foundry with ignored output. Preserve ABI/behavior, account for metadata and rerun contract/indexer acceptance from fresh state.
+
+The [read API guide](../read-api-design.md) records the planned anonymous, direct-PostgreSQL baseline and future extension constraints. [#13 caching](https://github.com/dubzn/remitee-challenge/issues/13) and [#14 AuthN/AuthZ](https://github.com/dubzn/remitee-challenge/issues/14) are future evaluation only: no cache, identity provider, access-policy middleware or placeholder is implemented for this challenge, and neither issue extends S3/S4/S5 acceptance.

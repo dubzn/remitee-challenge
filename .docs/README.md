@@ -8,6 +8,10 @@ The intended outcome is one reviewable submission within one week. Foundation, t
 
 [Current progress and next slice](progress.md): block status, evidence and remaining work.
 
+[Read API guide](read-api-design.md): recommended reading, planned endpoints and the cache/AuthN/AuthZ future backlog. Start here for S3.
+
+[Reviewed HTTP contract and examples](api/README.md): the OpenAPI draft, exact public types/errors and selected implementation boundary. Handlers and HTTP acceptance are next.
+
 1. [Source review and role alignment](references.md): what the challenge actually requires and how the JD informs quality.
 2. [Escrow specification and architecture](sdd/escrow.md): the proposed behavioral contract, boundaries, acceptance criteria, and work slices.
 3. [Delivery plan](delivery-plan.md): effort range, calendar, cut rules, and submission gate.
@@ -24,6 +28,10 @@ The intended outcome is one reviewable submission within one week. Foundation, t
 
 13. [Integrated Ponder runtime](indexer-runtime.md): commands, configuration, recovery and verification.
 14. [CLI wallets/testnet](testnet-wallet.md): two accounts, Foundry signing boundary and time limitations.
+
+15. [Documentation tooling and review](outputs/codex/2026-11-06-documentation-tooling.md): OpenAPI/Swagger UI and NatSpec/forge doc, issues #11/#12 and the Opus/xhigh disposition.
+
+16. [Token compatibility and freeze limits](token-support.md): supported semantics, issuer pause/blacklist scenarios, conditional recovery and current test coverage. [Timing alternatives](contract-design.md#timing-configuration-current-policy-and-future-alternatives) distinguish current constants, permitted deployment immutables and future per-escrow terms.
 
 ## Working agreement
 

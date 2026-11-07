@@ -144,3 +144,15 @@ Latest runner footer:
 > Claude usage remaining:
 > - Current session: 82% remaining · resets Nov 6 at 12:30pm (America/Buenos_Aires)
 > - Current week (all models): 93% remaining · resets Nov 8 at 12pm (America/Buenos_Aires)
+
+## Documentation tooling review
+
+November 6: the candidate requested a Claude xhigh second opinion on OpenAPI/Swagger UI and NatSpec/forge doc. Subscription runner retained Opus with xhigh effort; exit 0 and no stderr. [Prompt](2026-11-06-documentation-tooling-prompt.md), [unmodified response](2026-11-06-documentation-tooling-review.md), [Codex disposition and verification](../codex/2026-11-06-documentation-tooling.md). Read-only; Claude performed no tests or implementation. Its suggestion to make UI optional was not adopted because the candidate explicitly requested it.
+
+Runner usage: current session 96% remaining, resets Nov 6 at 6:40pm; current week (all models) 93% remaining, resets Nov 8 at 12pm (America/Buenos_Aires).
+
+## S3 HTTP contract review
+
+November 6: candidate-requested ask-claude xhigh review, retaining Opus from earlier reviews. Subscription preflight ready (pro); read-only consult exited 0, no stderr. [Exact prompt](2026-11-06-read-api-spec-prompt.md), [unmodified response](2026-11-06-read-api-spec-review.md), [Codex corrections and verification](../codex/2026-11-06-read-api-spec.md). Verdict READY_WITH_FIXES. Codex corrected health503 progress, component meanings, strict query wording and startup-context planning. The suggestion to infer unrecoverability after a wall-clock wait was rejected using pinned Ponder source. Claude performed no edits/tests; the corrected spec was independently validated, not re-approved in a second model call. S3 runtime remains pending.
+
+Runner usage: current session 93% remaining, resets Nov 7 at 1:29am; current week (all models) 92% remaining, resets Nov 8 at 11:59am (America/Buenos_Aires).

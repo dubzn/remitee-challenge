@@ -1,6 +1,7 @@
 import pg from 'pg';
 import type { Settings } from './config.ts';
 import { chainReader, ObservationError } from './rpc.ts';
+import type { Header } from './rpc.ts';
 export function connection(config: Settings) {
   return new pg.Pool({
     connectionString: config.databaseUrl,
@@ -29,33 +30,85 @@ export async function validateScope(config: Settings, pool: pg.Pool, fresh = fal
   }
   return rows[0] ? BigInt(rows[0].number) : 0n;
 }
-export async function readObservation(config: Settings, pool: pg.Pool) {
+export type Checkpoint = { scope_key: string; number: string; hash: string; timestamp: string };
+export type ReadTrace = {
+  head: Header | null;
+  checkpoint: Checkpoint | null;
+  rpc: 'up' | 'down' | 'unknown';
+  database: 'up' | 'down' | 'unknown';
+  scopeMatched: boolean;
+  identityValidated: boolean;
+};
+export const newReadTrace = (): ReadTrace => ({
+  head: null, checkpoint: null, rpc: 'unknown', database: 'unknown', scopeMatched: false, identityValidated: false,
+});
+export type Observation = {
+  chainId: number;
+  contractAddress: string;
+  observedHead: { number: string; hash: string; timestamp: string };
+  indexedThrough: { number: string; hash: string; timestamp: string };
+  confirmationDelay: number;
+  reorgWindowSeconds: number;
+  headLag: string;
+  eligibleBacklog: string;
+};
+export async function readCheckpoint(client: pg.Pool | pg.PoolClient, config: Settings) {
+  const result = await client.query(
+    `SELECT scope_key, number::text, hash, timestamp::text FROM "${config.schema}".checkpoint WHERE id=1`,
+  );
+  return (result.rows[0] as Checkpoint | undefined) ?? null;
+}
+export async function queryObservation<T>(
+  config: Settings,
+  pool: pg.Pool,
+  query: (client: pg.PoolClient, headTime: bigint) => Promise<T>,
+  trace = newReadTrace(),
+): Promise<{ data: T; observation: Observation }> {
   const chain = chainReader(config);
-  await chain.identity();
+  try {
+    await chain.identity();
+    trace.identityValidated = true;
+    trace.rpc = 'up';
+  } catch (error) {
+    trace.rpc = error instanceof ObservationError && error.code === 'deployment_identity_mismatch' ? 'up' : 'down';
+    throw error;
+  }
   const head = await chain.block('latest');
-  if (!head) throw new ObservationError('rpc_unavailable');
-  const client = await pool.connect();
-  let checkpoint: { scope_key: string; number: string; hash: string; timestamp: string };
-  let items: Record<string, unknown>[];
+  if (!head || typeof head.number !== 'string' || head.number.length > 66 || !/^0x[0-9a-fA-F]+$/.test(head.number)
+    || typeof head.timestamp !== 'string' || head.timestamp.length > 18 || !/^0x[0-9a-fA-F]+$/.test(head.timestamp)
+    || typeof head.hash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(head.hash)) {
+    trace.rpc = 'down';
+    throw new ObservationError('rpc_unavailable');
+  }
+  const headNumber = BigInt(head.number);
+  const headTime = BigInt(head.timestamp);
+  trace.head = head;
+  let client: pg.PoolClient;
+  try { client = await pool.connect(); trace.database = 'up'; }
+  catch { trace.database = 'down'; throw new ObservationError('database_unavailable'); }
+  let checkpoint: Checkpoint;
+  let data: T;
   try {
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-    const point = await client.query(
-      `SELECT scope_key, number::text, hash, timestamp::text FROM "${config.schema}".checkpoint WHERE id=1`,
-    );
-    if (!point.rows[0]) throw new ObservationError('checkpoint_unavailable');
-    checkpoint = point.rows[0];
-    items = (await client.query(`SELECT * FROM "${config.schema}".escrows ORDER BY id`)).rows;
+    const point = await readCheckpoint(client, config);
+    if (!point) throw new ObservationError('checkpoint_unavailable');
+    checkpoint = point;
+    trace.checkpoint = point;
+    data = await query(client, headTime);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
-    throw error;
+    if (error instanceof ObservationError) throw error;
+    if ((error as { code?: string }).code === '42P01') throw new ObservationError('checkpoint_unavailable');
+    trace.database = 'down';
+    throw new ObservationError('database_unavailable');
   } finally {
     client.release();
   }
   if (checkpoint.scope_key !== config.scopeKey) throw new ObservationError('persisted_scope_mismatch');
+  trace.scopeMatched = true;
   const indexed = BigInt(checkpoint.number);
   if (indexed < config.startupMinBlock) throw new ObservationError('startup_catchup');
-  const headNumber = BigInt(head.number);
   const eligible = headNumber - BigInt(config.confirmationDelay);
   if (indexed > eligible) throw new ObservationError('checkpoint_not_eligible');
   const canonical = await chain.block(indexed);
@@ -65,20 +118,22 @@ export async function readObservation(config: Settings, pool: pg.Pool) {
   if (again?.hash !== checkpoint.hash || sameHead?.hash !== head.hash)
     throw new ObservationError('chain_changed_during_read');
   return {
-    items,
+    data,
     observation: {
       chainId: config.deployment.chainId,
       contractAddress: config.deployment.address,
-      observedHead: {
-        number: headNumber.toString(),
-        hash: head.hash,
-        timestamp: BigInt(head.timestamp).toString(),
-      },
-      indexedThrough: { number: checkpoint.number, hash: checkpoint.hash, timestamp: checkpoint.timestamp },
+      observedHead: { number: headNumber.toString(), hash: head.hash.toLowerCase(), timestamp: headTime.toString() },
+      indexedThrough: { number: checkpoint.number, hash: checkpoint.hash.toLowerCase(), timestamp: checkpoint.timestamp },
       confirmationDelay: config.confirmationDelay,
       reorgWindowSeconds: config.reorgWindow,
       headLag: (headNumber - indexed).toString(),
       eligibleBacklog: (eligible - indexed).toString(),
     },
   };
+}
+export async function readObservation(config: Settings, pool: pg.Pool) {
+  const result = await queryObservation(config, pool, async (client) =>
+    (await client.query(`SELECT * FROM "${config.schema}".escrows ORDER BY id`)).rows,
+  );
+  return { items: result.data, observation: result.observation };
 }

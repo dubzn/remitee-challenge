@@ -16,6 +16,7 @@ import { compileArtifacts } from '../../../scripts/build-artifacts.ts';
 import { captureDeployment } from '../../../scripts/deployment-manifest.ts';
 import { settings } from '../config.ts';
 import { chainReader } from '../rpc.ts';
+import { apiRequest, exerciseApi, exerciseTimeBoundaries } from './api-acceptance.ts';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const project =
   process.env.REMITEE_INDEXER_TEST_PROJECT ??
@@ -257,6 +258,7 @@ try {
     REORG_WINDOW_SECONDS: '180',
   };
   const port = await freePort();
+  const apiPort = await freePort();
   function start(schema = 'acceptance', extra: Record<string, string> = {}, replay = false) {
     const log = resolve(runtime, `indexer-${sequence++}.log`);
     const out = createWriteStream(log);
@@ -266,7 +268,7 @@ try {
       {
         cwd: root,
         detached: true,
-        env: { ...env, INDEXER_SCHEMA: schema, INDEXER_PORT: String(port), ...extra },
+        env: { ...env, INDEXER_SCHEMA: schema, INDEXER_PORT: String(port), API_PORT: String(apiPort), ...extra },
         stdio: ['ignore', 'pipe', 'pipe'],
       },
     );
@@ -314,6 +316,21 @@ try {
     amount: initial[0].amount,
     traceHashes: true,
   });
+  const apiUrl = `http://127.0.0.1:${apiPort}`;
+  await exerciseApi({
+    root, runtime, url: apiUrl,
+    env: { ...env, INDEXER_PORT: String(port), API_PORT: String(apiPort) },
+    sender, beneficiary, db, rpc, until, freePort, stop, record,
+  });
+  const childRecord = readFileSync(running.log, 'utf8').split('\n').find(line => line.includes('"event":"APPLICATION_CHILDREN"'));
+  assert(childRecord);
+  process.kill(JSON.parse(childRecord).apiPid, 'SIGTERM');
+  await until('API exit stops whole application', async () => running.child.exitCode !== null);
+  assert.notEqual(running.child.exitCode, 0);
+  await until('sibling Ponder listener closed', async () => (await observed()).status === null);
+  running = start();
+  await until('shared launcher restart', async () => (await apiRequest(apiUrl, '/health')).status === 200, 90_000);
+  record('S3 shared launcher stops siblings and recomputes context on restart', { unexpectedChildExitRefused: true });
   const sixth = await create();
   await delay(500);
   assert.equal((await rows()).length, 5);
@@ -333,6 +350,7 @@ try {
     visibleAtExtraBlocks: [false, false, true, true],
     events: 10,
   });
+  await exerciseTimeBoundaries({ url: apiUrl, db, rpc, until, record });
   await stop(running.child);
   await create();
   await rpc('anvil_mine', [2, 1]);
@@ -386,7 +404,7 @@ try {
   await until('committed restart', async () => (await observed()).status === 200, 90_000);
   assert.equal(await events(), 12);
   record('physical transaction interruption and committed restart', { partial, escrows: 8, events: 12 });
-  const competitor = start('acceptance', { INDEXER_PORT: String(await freePort()) });
+  const competitor = start('acceptance', { INDEXER_PORT: String(await freePort()), API_PORT: String(await freePort()) });
   await until(
     'competitor excluded',
     async () =>
@@ -401,6 +419,13 @@ try {
   rpcAvailable = false;
   assert.equal((await observed()).status, 503);
   assert.equal((await observed('health')).status, 503);
+  assert.equal((await apiRequest(apiUrl, '/escrows')).status, 503);
+  const rpcHealth = await apiRequest(apiUrl, '/health');
+  assert.equal(rpcHealth.status, 503);
+  assert.equal(rpcHealth.body.components.rpc, 'down');
+  assert.equal(rpcHealth.body.diagnostics.observedHead, null);
+  assert.equal((await fetch(`${apiUrl}/openapi.yaml`)).status, 200);
+  assert.equal((await apiRequest(apiUrl, '/escrows/0')).status, 400);
   rpcAvailable = true;
   await until('RPC recovery', async () => (await observed()).status === 200);
   record('RPC loss blocks data and health', { recovered: true });
@@ -436,6 +461,12 @@ try {
         point < reject.blockNumber ? 'Pending' : 'Rejected',
       );
     } else assert.equal(r.status, 503);
+    const publicRead = await apiRequest(apiUrl, '/escrows/8');
+    if (publicRead.status === 200) {
+      const point = BigInt(publicRead.body.observation.indexedThrough.number);
+      assert.equal(publicRead.body.observation.indexedThrough.hash, (await client.getBlock({ blockNumber: point })).hash);
+      assert.equal(publicRead.body.escrow.onChainStatus, point < reject.blockNumber ? 'Pending' : 'Rejected');
+    } else assert.equal(publicRead.status, 503);
     samples++;
     await delay(100);
   }
@@ -488,6 +519,8 @@ try {
   while (Date.now() < blockedEnd) {
     assert.equal((await observed()).status, 503);
     assert.equal((await observed('health')).status, 503);
+    assert.equal((await apiRequest(apiUrl, '/escrows')).status, 503);
+    assert.equal((await apiRequest(apiUrl, '/health')).status, 503);
     blocked++;
     await delay(500);
   }
@@ -518,6 +551,9 @@ try {
     0,
   );
   record('explicit fresh-schema replay', { escrows: 8, events: 14 });
+  const replayed = await apiRequest(apiUrl, '/escrows/7');
+  assert.equal(replayed.status, 200);
+  assert.equal(replayed.body.escrow.onChainStatus, 'Rejected');
   await stop(running.child);
   const wrongScope = start(schema, { CONFIRMATION_DELAY: '3' });
   await until('persisted scope refused', async () => wrongScope.child.exitCode !== null);
@@ -552,9 +588,9 @@ try {
   assert.notEqual(reset.child.exitCode, 0);
   assert.equal(await events(), 14);
   record('scope, replay, code and chain-reset identity refusal', { oldDataPreserved: true });
-  record('S2 local application acceptance', {
+  record('S2 and S3 local application acceptance', {
     result: 'pass',
-    scope: 'S3 API and observed remote CI acceptance remain separate',
+    scope: 'Indexer and public HTTP pass locally; observed remote CI and full startup/demo remain separate',
   });
 } catch (error) {
   console.error(error);

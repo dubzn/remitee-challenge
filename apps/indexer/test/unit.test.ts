@@ -160,6 +160,8 @@ test('configuration rejects invalid scope/policy/descriptor; defaults retain cho
     const config = settings(env);
     assert.equal(config.confirmationDelay, 2);
     assert.equal(config.reorgWindow, 180);
+    assert.equal(settings({ ...env, API_PORT: '3001' }).scopeKey, config.scopeKey);
+    assert.throws(() => settings({ ...env, API_PORT: '42069' }), /must differ/);
     for (const extra of [
       { INDEXER_SCHEMA: 'public' },
       { INDEXER_SCHEMA: 'x;DROP' },

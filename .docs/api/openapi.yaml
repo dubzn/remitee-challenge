@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Remitee Escrow Read API
   version: 0.1.0
-  description: Spec-first contract for S3, not an assertion that handlers are implemented. Internal-process
+  description: Implemented S3 read API with a spec-first HTTP contract. Internal-process
     consumers are acceptable; the local challenge is anonymous and read-only. Contracts and Ponder are
     implemented. This API reads a canonical event projection and never signs, submits or retries transactions.
     Cache/AuthN/AuthZ and Swagger UI are outside the required API implementation; Swagger UI is optional
@@ -11,9 +11,12 @@ info:
     in matched input is 400. Unclassified observation failures map to sanitized 503, not raw internal
     errors.
 servers:
-- url: http://127.0.0.1:3000
-  description: Planned local consumer API listener; not yet implemented. Ponder stays on its separate
-    internal port.
+- url: http://127.0.0.1:{port}
+  description: Local consumer API listener. Ponder stays on its separate internal port.
+  variables:
+    port:
+      default: '3000'
+      description: Set this to the configured API_PORT when using a non-default listener.
 security: []
 tags:
 - name: Escrows

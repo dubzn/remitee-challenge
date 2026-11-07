@@ -1,7 +1,7 @@
 # Foundation only: strict TypeScript plus real, isolated Anvil/PostgreSQL smoke
 # and negative checks via the same `npm run check` used locally. A separate job
 # runs real contract tests. The indexer job runs actual application acceptance;
-# public API and full application acceptance remain separate gates.
+# read API responses share the application suite; full startup/demo remains S4.
 name: Foundation
 
 on:
@@ -115,7 +115,7 @@ jobs:
           echo "No containers, networks or volumes remain for ${REMITEE_CHECK_PROJECT}."
 
   indexer:
-    name: Indexer acceptance (Ponder/Anvil/PostgreSQL)
+    name: Indexer and read API acceptance (Ponder/Anvil/PostgreSQL)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -138,7 +138,9 @@ jobs:
           npm run typecheck
           npm run indexer:typecheck
           npm run indexer:unit
-      - name: Run actual indexer acceptance
+          npm run api:spec
+          npm run api:unit
+      - name: Run actual indexer and public HTTP acceptance
         timeout-minutes: 12
         run: npm run indexer:test
       - name: Show indexer evidence on failure

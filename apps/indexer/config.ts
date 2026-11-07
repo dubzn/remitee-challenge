@@ -22,6 +22,7 @@ export type Settings = {
   reorgWindow: number;
   pollMs: number;
   port: number;
+  apiPort: number;
   scopeKey: string;
   startupMinBlock: bigint;
 };
@@ -73,6 +74,9 @@ export function settings(env: NodeJS.ProcessEnv = process.env): Settings {
     throw new Error('Invalid INDEXER_SCHEMA');
   const confirmationDelay = integer(env.CONFIRMATION_DELAY, 2, 0, 10_000, 'CONFIRMATION_DELAY');
   const reorgWindow = integer(env.REORG_WINDOW_SECONDS, 180, 1, 600, 'REORG_WINDOW_SECONDS');
+  const port = integer(env.INDEXER_PORT, 42069, 1, 65535, 'INDEXER_PORT');
+  const apiPort = integer(env.API_PORT, 3000, 1, 65535, 'API_PORT');
+  if (port === apiPort) throw new Error('API_PORT must differ from INDEXER_PORT');
   if (env.INDEXER_STARTUP_MIN_BLOCK && !/^\d+$/.test(env.INDEXER_STARTUP_MIN_BLOCK))
     throw new Error('Invalid startup floor');
   return {
@@ -84,7 +88,8 @@ export function settings(env: NodeJS.ProcessEnv = process.env): Settings {
     confirmationDelay,
     reorgWindow,
     pollMs: integer(env.INDEXER_POLL_MS, 1_000, 100, 60_000, 'INDEXER_POLL_MS'),
-    port: integer(env.INDEXER_PORT, 42069, 1, 65535, 'INDEXER_PORT'),
+    port,
+    apiPort,
     scopeKey: createHash('sha256')
       .update(JSON.stringify({ descriptor, confirmationDelay, reorgWindow, projectionVersion: 1 }))
       .digest('hex'),

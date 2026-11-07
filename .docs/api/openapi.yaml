@@ -1,0 +1,912 @@
+openapi: 3.1.0
+info:
+  title: Remitee Escrow Read API
+  version: 0.1.0
+  description: Spec-first contract for S3, not an assertion that handlers are implemented. Internal-process
+    consumers are acceptable; the local challenge is anonymous and read-only. Contracts and Ponder are
+    implemented. This API reads a canonical event projection and never signs, submits or retries transactions.
+    Cache/AuthN/AuthZ and Swagger UI are outside the required API implementation; Swagger UI is optional
+    polish. Only the three exact GET business paths below are contracted; trailing-slash aliases, other
+    paths/methods and static documentation are outside this operation contract. Malformed percent-encoding
+    in matched input is 400. Unclassified observation failures map to sanitized 503, not raw internal
+    errors.
+servers:
+- url: http://127.0.0.1:3000
+  description: Planned local consumer API listener; not yet implemented. Ponder stays on its separate
+    internal port.
+security: []
+tags:
+- name: Escrows
+  description: Read admitted escrow records and time eligibility.
+- name: Health
+  description: Application readiness and diagnostic progress, distinct from Ponder native health.
+paths:
+  /escrows/{id}:
+    get:
+      tags:
+      - Escrows
+      operationId: getEscrow
+      summary: Read one escrow from the admitted projection
+      description: Validate a positive uint256 decimal ID, then require a verified observation before
+        either 200 or 404. No query parameters are accepted. Absence here is absence at the reported indexed
+        checkpoint, not proof that the escrow does not exist in a newer chain block.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Positive canonical decimal escrow ID, at most uint256 maximum; no signs, fractions,
+          exponents, hexadecimal or leading zeroes.
+        schema:
+          $ref: '#/components/schemas/PositiveUint256String'
+        example: '1'
+      responses:
+        '200':
+          description: Escrow and its verified observation.
+          headers:
+            Cache-Control:
+              description: Data and health successes/errors are not cacheable in this baseline.
+              required: true
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+              examples:
+                PendingDetail:
+                  $ref: '#/components/examples/PendingDetail'
+                LargeIntegerDetail:
+                  $ref: '#/components/examples/LargeIntegerDetail'
+                ReleasedDetail:
+                  $ref: '#/components/examples/ReleasedDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          description: ID absent from a verified admitted snapshot.
+          headers:
+            Cache-Control:
+              description: Data and health successes/errors are not cacheable in this baseline.
+              required: true
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+              examples:
+                MissingEscrow:
+                  $ref: '#/components/examples/MissingEscrow'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /escrows:
+    get:
+      tags:
+      - Escrows
+      operationId: listEscrows
+      summary: List matching escrows, newest ID first
+      description: All supplied filters combine with AND and run in SQL before LIMIT/OFFSET. status selects
+        effectiveStatus using one captured canonical head timestamp for the response. Omitted filters
+        include all records. All parameters are scalar; empty, repeated or unknown parameters return 400.
+        Decoded limit/offset scalar text must match ^(0|[1-9][0-9]*)$ before exact range validation; signs,
+        whitespace, leading zeroes, fractions, exponents and hexadecimal are rejected, without coercion.
+        No creation-time filters, cursor pagination or raw event listing. Pagination has no snapshot guarantee
+        between requests.
+      parameters:
+      - name: sender
+        in: query
+        required: false
+        description: Exact sender match after address normalization.
+        schema:
+          $ref: '#/components/schemas/Address'
+      - name: beneficiary
+        in: query
+        required: false
+        description: Exact beneficiary match after address normalization.
+        schema:
+          $ref: '#/components/schemas/Address'
+      - name: status
+        in: query
+        required: false
+        description: Case-sensitive effective-status value; Pending excludes time-expired Pending records.
+        schema:
+          $ref: '#/components/schemas/EffectiveStatus'
+      - name: limit
+        in: query
+        required: false
+        description: Maximum records, default 20; no silent clamping.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: offset
+        in: query
+        required: false
+        description: Matching rows to skip, default 0; no silent clamping.
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 0
+      responses:
+        '200':
+          description: Matching records and page/observation metadata; zero matches is 200 with an empty
+            items array.
+          headers:
+            Cache-Control:
+              description: Data and health successes/errors are not cacheable in this baseline.
+              required: true
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+              examples:
+                ExpiredList:
+                  $ref: '#/components/examples/ExpiredList'
+                EmptyList:
+                  $ref: '#/components/examples/EmptyList'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /health:
+    get:
+      tags:
+      - Health
+      operationId: getHealth
+      summary: Read application readiness and progress
+      description: 'No query parameters. Probe RPC/deployment identity, database and indexer readiness.
+        ready=true requires a verified observation and a ready indexer. Expected admission lag alone is
+        not an error; canonical older prefixes can be ready after the startup floor is met, with eligible
+        backlog exposed and no selected backlog threshold/SLA. RPC/DB failure, startup catch-up or an
+        unverified/noncanonical checkpoint returns 503. A successfully queried unchanged head on idle
+        Anvil is not an outage. Probe component states independently where possible; choose reason deterministically
+        in this verification order: deployment identity/RPC, captured head, database snapshot/checkpoint,
+        persisted scope, startup floor, checkpoint eligibility, canonical checkpoint hash, head/checkpoint
+        recheck, engine readiness. Sanitized observation_unavailable covers unclassified failures. A native
+        ready engine can coexist with failed data verification. This route belongs to the consumer API
+        listener, not Ponder native /health or /ready.'
+      responses:
+        '200':
+          description: Application can serve verified reads.
+          headers:
+            Cache-Control:
+              description: Data and health successes/errors are not cacheable in this baseline.
+              required: true
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Healthy'
+              examples:
+                Healthy:
+                  $ref: '#/components/examples/Healthy'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          description: Application cannot serve verified reads; no successful stale fallback.
+          headers:
+            Cache-Control:
+              description: Data and health successes/errors are not cacheable in this baseline.
+              required: true
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unhealthy'
+              examples:
+                RpcUnavailable:
+                  $ref: '#/components/examples/RpcUnavailable'
+                StartupCatchup:
+                  $ref: '#/components/examples/StartupCatchup'
+components:
+  schemas:
+    Uint256String:
+      type: string
+      pattern: ^(0|[1-9][0-9]*)$
+      maxLength: 78
+      x-maximum-decimal: '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+      description: Canonical base-10 string. Runtime must also enforce the exact upper bound 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+        pattern and length alone do not enforce that bound.
+    PositiveUint256String:
+      type: string
+      pattern: ^[1-9][0-9]*$
+      maxLength: 78
+      x-maximum-decimal: '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+      description: Canonical base-10 string. Runtime must also enforce the exact upper bound 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+        pattern and length alone do not enforce that bound.
+    UnixSecondsString:
+      type: string
+      pattern: ^(0|[1-9][0-9]*)$
+      maxLength: 20
+      x-maximum-decimal: '18446744073709551615'
+      description: Canonical base-10 string. Runtime must also enforce the exact upper bound 18446744073709551615;
+        pattern and length alone do not enforce that bound.
+    Address:
+      type: string
+      pattern: ^0x[0-9a-fA-F]{40}$
+      description: 20-byte EVM address. Inputs accept mixed case without requiring checksum casing; responses
+        normalize to lowercase. A zero-address filter is syntactically valid and can return an empty list.
+    Hash:
+      type: string
+      pattern: ^0x[0-9a-f]{64}$
+      description: 32-byte lowercase hexadecimal hash.
+    OnChainStatus:
+      type: string
+      enum:
+      - Pending
+      - CancelledBySender
+      - Released
+      - Rejected
+      - Expired
+      description: Latest admitted escrow event outcome, which can lag the chain head.
+    EffectiveStatus:
+      type: string
+      enum:
+      - Pending
+      - CancelledBySender
+      - Released
+      - Rejected
+      - Expired
+      - ExpiredRecoverable
+    Block:
+      type: object
+      additionalProperties: false
+      required:
+      - number
+      - hash
+      - timestamp
+      properties:
+        number:
+          $ref: '#/components/schemas/Uint256String'
+        hash:
+          $ref: '#/components/schemas/Hash'
+        timestamp:
+          $ref: '#/components/schemas/UnixSecondsString'
+    Observation:
+      type: object
+      additionalProperties: false
+      required:
+      - chainId
+      - contractAddress
+      - observedHead
+      - indexedThrough
+      - confirmationDelay
+      - reorgWindowSeconds
+      - headLag
+      - eligibleBacklog
+      properties:
+        chainId:
+          $ref: '#/components/schemas/PositiveUint256String'
+        contractAddress:
+          $ref: '#/components/schemas/Address'
+        observedHead:
+          $ref: '#/components/schemas/Block'
+        indexedThrough:
+          $ref: '#/components/schemas/Block'
+        confirmationDelay:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Additional blocks after inclusion, excluding inclusion itself.
+        reorgWindowSeconds:
+          type: integer
+          minimum: 1
+          maximum: 600
+        headLag:
+          $ref: '#/components/schemas/Uint256String'
+        eligibleBacklog:
+          $ref: '#/components/schemas/Uint256String'
+      description: A verified chain observation tied to the same database snapshot as the returned rows.
+        indexedThrough <= observedHead - confirmationDelay; headLag = head - indexed; eligibleBacklog
+        = max(0, head - confirmationDelay) - indexed. Rows/checkpoint share one read-only SQL snapshot.
+        Canonicality is rechecked before response, but RPC and SQL cannot be one atomic cross-system snapshot.
+        No consensus-finality or cross-request-snapshot guarantee.
+    Escrow:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - sender
+      - beneficiary
+      - token
+      - amount
+      - createdAt
+      - cancelDeadline
+      - expiresAt
+      - onChainStatus
+      - effectiveStatus
+      - canCancel
+      - canRecover
+      - creationTxHash
+      - resolutionTxHash
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveUint256String'
+        sender:
+          $ref: '#/components/schemas/Address'
+        beneficiary:
+          $ref: '#/components/schemas/Address'
+        token:
+          $ref: '#/components/schemas/Address'
+        amount:
+          $ref: '#/components/schemas/PositiveUint256String'
+        createdAt:
+          $ref: '#/components/schemas/UnixSecondsString'
+        cancelDeadline:
+          $ref: '#/components/schemas/UnixSecondsString'
+        expiresAt:
+          $ref: '#/components/schemas/UnixSecondsString'
+        onChainStatus:
+          $ref: '#/components/schemas/OnChainStatus'
+        effectiveStatus:
+          $ref: '#/components/schemas/EffectiveStatus'
+          description: For recorded Pending, ExpiredRecoverable iff observedHead.timestamp >= expiresAt;
+            otherwise Pending. All recorded terminal states remain terminal.
+        canCancel:
+          type: boolean
+          description: True iff recorded Pending and observed head time < cancelDeadline. Describes sender
+            role/time eligibility, not caller identity or guaranteed transfer success, nor proof that
+            no unadmitted resolution exists.
+        canRecover:
+          type: boolean
+          description: True iff recorded Pending and observed head time >= expiresAt. Does not guarantee
+            token transfer availability, nor that no unadmitted resolution exists.
+        creationTxHash:
+          $ref: '#/components/schemas/Hash'
+        resolutionTxHash:
+          oneOf:
+          - $ref: '#/components/schemas/Hash'
+          - type: 'null'
+      description: One escrow reconstructed from admitted successful events. Reuse emitted absolute deadlines,
+        never recompute them from current constants. Pending and ExpiredRecoverable have null resolutionTxHash;
+        terminal outcomes have a successful resolution hash. Approval transactions, reverted attempts
+        and unsigned wallet actions are not included. Time alone transfers no tokens. Sender/beneficiary
+        and recorded outcomes are immutable under the canonical contract lifecycle; a verified reorg can
+        change the projection.
+    Page:
+      type: object
+      additionalProperties: false
+      required:
+      - limit
+      - offset
+      - hasMore
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        hasMore:
+          type: boolean
+          description: Whether another matching row exists after this page in the same snapshot; no total-count
+            query required. It can be true even if the next page offset would exceed 10000; such a page
+            is outside this bounded API and cannot be requested.
+    DetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - escrow
+      - observation
+      properties:
+        escrow:
+          $ref: '#/components/schemas/Escrow'
+        observation:
+          $ref: '#/components/schemas/Observation'
+    ListResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - page
+      - observation
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Escrow'
+        page:
+          $ref: '#/components/schemas/Page'
+        observation:
+          $ref: '#/components/schemas/Observation'
+    UnavailabilityReason:
+      type: string
+      enum:
+      - rpc_unavailable
+      - database_unavailable
+      - indexer_unavailable
+      - indexer_not_ready
+      - startup_catchup
+      - checkpoint_unavailable
+      - checkpoint_not_eligible
+      - checkpoint_hash_mismatch
+      - deployment_identity_mismatch
+      - persisted_scope_mismatch
+      - chain_changed_during_read
+      - observation_unavailable
+      description: 'First failed verification in the documented deterministic guard order. observation_unavailable
+        is a sanitized catch-all for unclassified observation failures. checkpoint_hash_mismatch does
+        not itself prove an unrecoverable reorg: recovery/replay follows verified history and the timestamp-based
+        Ponder window, not elapsed wall-clock wait.'
+    InvalidRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              const: invalid_request
+            message:
+              type: string
+            parameter:
+              type: string
+    NotFound:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - observation
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              const: escrow_not_found
+            message:
+              type: string
+        observation:
+          $ref: '#/components/schemas/Observation'
+    Unavailable:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          - reason
+          properties:
+            code:
+              const: observation_unavailable
+            message:
+              type: string
+            reason:
+              $ref: '#/components/schemas/UnavailabilityReason'
+    Healthy:
+      type: object
+      additionalProperties: false
+      required:
+      - ready
+      - components
+      - observation
+      properties:
+        ready:
+          const: true
+        components:
+          type: object
+          additionalProperties: false
+          required:
+          - rpc
+          - database
+          - indexer
+          properties:
+            rpc:
+              const: up
+            database:
+              const: up
+            indexer:
+              const: ready
+        observation:
+          $ref: '#/components/schemas/Observation'
+    Unhealthy:
+      type: object
+      additionalProperties: false
+      required:
+      - ready
+      - components
+      - observation
+      - reason
+      - diagnostics
+      properties:
+        ready:
+          const: false
+        components:
+          type: object
+          additionalProperties: false
+          required:
+          - rpc
+          - database
+          - indexer
+          properties:
+            rpc:
+              type: string
+              enum:
+              - up
+              - down
+              - unknown
+            database:
+              type: string
+              enum:
+              - up
+              - down
+              - unknown
+            indexer:
+              type: string
+              enum:
+              - ready
+              - catching_up
+              - unavailable
+              - unknown
+          description: RPC/database reflect current probe availability, not data correctness; unknown
+            means not assessable. Indexer ready means reachable native readiness passed and startup floor
+            met, not that all observation verification passed. catching_up means native readiness or startup
+            floor is unmet, not proof of forward progress. unavailable means the engine endpoint is unreachable;
+            unknown means not assessed. For hash/scope/identity mismatch, components can remain up/ready
+            while global ready is false; reason explains the failed verification.
+        observation:
+          type: 'null'
+        reason:
+          $ref: '#/components/schemas/UnavailabilityReason'
+        diagnostics:
+          type: object
+          additionalProperties: false
+          required:
+          - observedHead
+          - indexedThrough
+          - confirmationDelay
+          - reorgWindowSeconds
+          - headLag
+          - eligibleBacklog
+          properties:
+            observedHead:
+              oneOf:
+              - $ref: '#/components/schemas/Block'
+              - type: 'null'
+            indexedThrough:
+              oneOf:
+              - $ref: '#/components/schemas/Block'
+              - type: 'null'
+            confirmationDelay:
+              type: integer
+              minimum: 0
+              maximum: 10000
+            reorgWindowSeconds:
+              type: integer
+              minimum: 1
+              maximum: 600
+            headLag:
+              oneOf:
+              - $ref: '#/components/schemas/Uint256String'
+              - type: 'null'
+            eligibleBacklog:
+              oneOf:
+              - $ref: '#/components/schemas/Uint256String'
+              - type: 'null'
+          description: Best-effort metadata obtained during current probes, not a verified or necessarily
+            coherent observation. Unavailable head/checkpoint values are null; no remembered head or durable
+            health history is required. Configured delay/window are always known. Compute headLag and
+            eligibleBacklog only from available, comparable same-scope heights with nonnegative results;
+            otherwise null, never clamp a negative result to zero. These metrics are diagnostic and cannot
+            authorize actions or label escrow data fresh.
+  responses:
+    InvalidRequest:
+      description: Malformed, repeated, unsupported or out-of-range input. Validate before checking readiness.
+      headers:
+        Cache-Control:
+          description: Data and health successes/errors are not cacheable in this baseline.
+          required: true
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InvalidRequest'
+          examples:
+            InvalidInput:
+              $ref: '#/components/examples/InvalidInput'
+    Unavailable:
+      description: No verified observation is available. No escrow payload or successful stale fallback
+        is returned.
+      headers:
+        Cache-Control:
+          description: Data and health successes/errors are not cacheable in this baseline.
+          required: true
+          schema:
+            type: string
+            const: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Unavailable'
+          examples:
+            UnavailableRead:
+              $ref: '#/components/examples/UnavailableRead'
+  examples:
+    PendingDetail:
+      summary: Pending while sender cancellation remains time-eligible
+      value:
+        escrow:
+          id: '1'
+          sender: '0x1111111111111111111111111111111111111111'
+          beneficiary: '0x2222222222222222222222222222222222222222'
+          token: '0x3333333333333333333333333333333333333333'
+          amount: '100000000'
+          createdAt: '1000'
+          cancelDeadline: '8200'
+          expiresAt: '605800'
+          onChainStatus: Pending
+          effectiveStatus: Pending
+          canCancel: true
+          canRecover: false
+          creationTxHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          resolutionTxHash: null
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '2000'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    LargeIntegerDetail:
+      summary: ID above JavaScript safe integer range and maximum uint256 amount
+      value:
+        escrow:
+          id: '9007199254740993'
+          sender: '0x1111111111111111111111111111111111111111'
+          beneficiary: '0x2222222222222222222222222222222222222222'
+          token: '0x3333333333333333333333333333333333333333'
+          amount: '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+          createdAt: '1000'
+          cancelDeadline: '8200'
+          expiresAt: '605800'
+          onChainStatus: Pending
+          effectiveStatus: Pending
+          canCancel: true
+          canRecover: false
+          creationTxHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          resolutionTxHash: null
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '2000'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    ReleasedDetail:
+      summary: A recorded successful release stays terminal after the original expiry
+      value:
+        escrow:
+          id: '1'
+          sender: '0x1111111111111111111111111111111111111111'
+          beneficiary: '0x2222222222222222222222222222222222222222'
+          token: '0x3333333333333333333333333333333333333333'
+          amount: '100000000'
+          createdAt: '1000'
+          cancelDeadline: '8200'
+          expiresAt: '605800'
+          onChainStatus: Released
+          effectiveStatus: Released
+          canCancel: false
+          canRecover: false
+          creationTxHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          resolutionTxHash: '0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '605800'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '605700'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    ExpiredList:
+      summary: Time-derived expiry without a recovery event or transaction
+      value:
+        items:
+        - id: '1'
+          sender: '0x1111111111111111111111111111111111111111'
+          beneficiary: '0x2222222222222222222222222222222222222222'
+          token: '0x3333333333333333333333333333333333333333'
+          amount: '100000000'
+          createdAt: '1000'
+          cancelDeadline: '8200'
+          expiresAt: '605800'
+          onChainStatus: Pending
+          effectiveStatus: ExpiredRecoverable
+          canCancel: false
+          canRecover: true
+          creationTxHash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          resolutionTxHash: null
+        page:
+          limit: 20
+          offset: 0
+          hasMore: false
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '605800'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '605700'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    EmptyList:
+      summary: No matches in the admitted projection
+      value:
+        items: []
+        page:
+          limit: 20
+          offset: 0
+          hasMore: false
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '2000'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    InvalidInput:
+      summary: Invalid or unsupported request input
+      value:
+        error:
+          code: invalid_request
+          message: Request contains invalid or unsupported input.
+    MissingEscrow:
+      summary: Absent from a verified admitted snapshot
+      value:
+        error:
+          code: escrow_not_found
+          message: Escrow is absent from the admitted projection.
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '2000'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    UnavailableRead:
+      summary: A failed observation does not return stale escrow data
+      value:
+        error:
+          code: observation_unavailable
+          message: A verified read is currently unavailable.
+          reason: rpc_unavailable
+    Healthy:
+      summary: Normal two-block admission lag with no eligible backlog
+      value:
+        ready: true
+        components:
+          rpc: up
+          database: up
+          indexer: ready
+        observation:
+          chainId: '31337'
+          contractAddress: '0x4444444444444444444444444444444444444444'
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '2000'
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '2'
+          eligibleBacklog: '0'
+    RpcUnavailable:
+      summary: RPC failure; no current head is available and checkpoint is diagnostic
+      value:
+        ready: false
+        components:
+          rpc: down
+          database: up
+          indexer: unknown
+        observation: null
+        reason: rpc_unavailable
+        diagnostics:
+          observedHead: null
+          indexedThrough:
+            number: '10'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: null
+          eligibleBacklog: null
+    StartupCatchup:
+      summary: Engine reachability is insufficient while the shared startup floor is unmet
+      value:
+        ready: false
+        components:
+          rpc: up
+          database: up
+          indexer: catching_up
+        observation: null
+        reason: startup_catchup
+        diagnostics:
+          observedHead:
+            number: '12'
+            hash: '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+            timestamp: '2000'
+          indexedThrough:
+            number: '9'
+            hash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            timestamp: '1900'
+          confirmationDelay: 2
+          reorgWindowSeconds: 180
+          headLag: '3'
+          eligibleBacklog: '1'

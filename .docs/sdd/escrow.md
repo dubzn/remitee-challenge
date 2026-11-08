@@ -1,6 +1,6 @@
 # ERC-20 escrow challenge
 
-Status: infrastructure/contracts/indexer have local and observed CI evidence; S3 API is implemented and locally verified, with remote CI pending publication. Created: 2026-11-03. Updated: 2026-11-07.
+Status: infrastructure/contracts/indexer and S3 API have local and observed published CI evidence. November 8 contract reference generation has separate local checks; S4/S5 remain open. Created: 2026-11-03. Updated: 2026-11-08.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
 Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. The read API now has [local implementation/review evidence](../outputs/codex/2026-11-07-read-api-implementation.md); full startup/demo remains S4. Earlier [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) is retained.
 Contract milestone: the approved [core interface/storage](../contract-design.md) is implemented and C1-C10 are complete. On Nov 6 the candidate requested closing the Nov 5 block and tracking alternatives as future improvements; see [closeout](../outputs/codex/2026-11-06-contract-closeout.md).
@@ -47,7 +47,7 @@ The [supplied stakeholder reply](../references.md#stakeholder-clarification-reco
 
 ### Acceptance criteria
 
-AC1-AC5/C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC8 have [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) and [observed CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896). AC9-AC10 now have [local PostgreSQL/HTTP acceptance and review](../outputs/codex/2026-11-07-read-api-implementation.md); their configured remote CI run is not yet observed. AC11/AC12 remain full-submission gates. Foundation evidence is [separate](../local-development.md).
+AC1-AC5/C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC8 have [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) and [observed CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896). AC9-AC10 have [local PostgreSQL/HTTP acceptance and review](../outputs/codex/2026-11-07-read-api-implementation.md) and [published S3 CI on 80f1367](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160), confirmed November 8. The November 8 NatSpec/documentation changes require separate verification; this run does not cover them. AC11/AC12 remain full-submission gates. Foundation evidence is [separate](../local-development.md).
 
 | ID | Observable requirement | Required evidence |
 | --- | --- | --- |
@@ -182,7 +182,7 @@ S3 changes neither the contract ABI nor the projection schema. Local deployment/
 
 ## Verification
 
-The implemented core has 62 passing contract tests locally and in CI, plus compiled ABI/layout evidence; see [implementation verification](../outputs/codex/2026-11-05-contract-implementation.md). Indexer behavior has local application evidence; remote CI is observed and public API acceptance remains pending. Foundation verification is in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
+The implemented core has 62 passing contract tests locally and in CI, plus compiled ABI/layout evidence; see [implementation verification](../outputs/codex/2026-11-05-contract-implementation.md). Indexer and public API behavior passed actual local application acceptance and the published S3 CI. November 8 documentation/fresh-build checks are [recorded separately](../outputs/codex/2026-11-08-documentation-closeout.md). Foundation verification is in [local development](../local-development.md). Planning validation includes source/reference checks, separate Claude Opus/high architecture reviews and the Nov 4 Opus/xhigh pre-commit review. The first architecture invocation failed on expired OAuth; the retry and later reviews succeeded. See [consultation status](../outputs/claude/README.md) and [pre-commit disposition](../outputs/codex/2026-11-04-preflight-decisions.md). Record implementation evidence beside each acceptance criterion as its slice is completed.
 
 Use actual PostgreSQL transactions and a separate database per parallel test worker; schema separation alone does not isolate advisory locks. Use a private Anvil per integration worker or run time-travel suites serially. Foundry unit tests use their in-process EVM independently of Docker. Compose provisions local Anvil/PostgreSQL and startup migrations; preserve/validate chain identity or reset both datasets explicitly. Before submission, review the diff, check AI claims against implementation and rehearse limitations.
 
@@ -196,7 +196,7 @@ Use actual PostgreSQL transactions and a separate database per parallel test wor
 
 Internal observation endpoints remain S2 diagnostics; S3 public filters/pagination/eligibility are now implemented and locally verified. CLI signers stay external. Optional testnet instructions do not authorize broadcasting or spending funds.
 
-S2 [implementation/results](../outputs/codex/2026-11-06-indexer-integration.md), [runtime](../indexer-runtime.md) and [external signing/testnet](../testnet-wallet.md). I5/S2 retain observed CI; S3 [local acceptance](../outputs/codex/2026-11-07-read-api-implementation.md) is separate from its pending published CI run.
+S2 [implementation/results](../outputs/codex/2026-11-06-indexer-integration.md), [runtime](../indexer-runtime.md) and [external signing/testnet](../testnet-wallet.md). I5/S2 retain their historical evidence; S3 [local acceptance](../outputs/codex/2026-11-07-read-api-implementation.md) now also has the published run cited above.
 
 ## S3 execution checks (November 7)
 
@@ -204,14 +204,21 @@ S2 [implementation/results](../outputs/codex/2026-11-06-indexer-integration.md),
 - [x] A2: effective-state SQL precedes pagination; one repeatable snapshot/canonical guard. Actual Ponder writer progress was isolated from the reader snapshot.
 - [x] A3: OpenAPI, exact integers/timestamps, trace nullability and six HTTP time boundaries passed without synthetic events.
 - [x] A4: shared floor/policy, missing context refusal, sibling shutdown/restart and honest outage/mismatch 503 have actual evidence.
-- [x] A5: raw spec remains outside readiness; offline structure/examples/real responses pass and are wired into existing CI. Remote execution remains unobserved.
-- [x] A6: independent Opus/xhigh review, fixes and a full local rerun are recorded in the implementation evidence. No remote success is inferred.
+- [x] A5: raw spec remains outside readiness; offline structure/examples/real responses pass locally and in the published CI on 80f1367.
+- [x] A6: independent Opus/xhigh review, fixes and a full local rerun are recorded in the implementation evidence; remote success was independently observed November 8.
 
 ## Requested documentation (November 6)
 
 Candidate-requested additions, not literal employer instructions. See [tooling and review](../outputs/codex/2026-11-06-documentation-tooling.md). Functional S1/S2 stay closed; these checks extend the AC12 documentation gate.
 
-- [x] D1, local: [#11](https://github.com/dubzn/remitee-challenge/issues/11): one OpenAPI 3.1 source, checked examples/actual HTTP responses, README commands and raw spec availability during RPC/DB failure. CI is configured; publication/observed execution remains pending. Swagger UI stays optional and is not implemented.
-- [ ] D2: [#12](https://github.com/dubzn/remitee-challenge/issues/12): accurate public NatSpec, verified inheritance and reproducible forge doc Markdown/HTML using pinned Foundry with ignored output. Preserve ABI/behavior, account for metadata and rerun contract/indexer acceptance from fresh state.
+- [x] D1: [#11](https://github.com/dubzn/remitee-challenge/issues/11): one OpenAPI 3.1 source, checked examples/actual HTTP responses, README commands and raw spec availability during RPC/DB failure. Published CI on 80f1367 passed. Swagger UI stays optional and is not implemented.
+- [x] D2, local: [#12](https://github.com/dubzn/remitee-challenge/issues/12): accurate public NatSpec, verified inheritance and reproducible forge doc Markdown/HTML using pinned Foundry with ignored output. ABI/executable runtime unchanged; metadata accounted for; 62 contract tests and fresh-deployment indexer/API acceptance passed. [Evidence and review](../outputs/codex/2026-11-08-documentation-closeout.md). New documentation CI step is configured, not yet observed remotely.
+
+November 8 documentation closeout acceptance (D2; locally verified and reviewed):
+
+- [x] D2a: Public methods/getters, parameters/returns, five events, custom errors and record/status meanings explain current callers, payout recipients and exact time boundaries. Cancellation is first-successful-resolution; token issuer restrictions can block every payout.
+- [x] D2b: Compiler and rendered inheritance verified, with explicit constant-getter devdoc exception; events/errors available on IEscrow. Pinned ignored Markdown/HTML builds twice identically. Rendered details/interface link and local targets pass under required root HTTP serving; static resource checks/browser inspection are bounded, not exhaustive network interception.
+- [x] D2c: Compared pre/post ABI/executable code, passed 62 tests and all 18 fresh-deployment indexer/API observations. Metadata changes as expected; no identity check, old descriptor or database rewritten.
+- [x] D2d: Commands, results, assumptions/alternatives and Opus/xhigh review dispositions recorded before commits. S4 startup/demo and S5 candidate rehearsal remain separate gates.
 
 The [read API guide](../read-api-design.md) records the planned anonymous, direct-PostgreSQL baseline and future extension constraints. [#13 caching](https://github.com/dubzn/remitee-challenge/issues/13) and [#14 AuthN/AuthZ](https://github.com/dubzn/remitee-challenge/issues/14) are future evaluation only: no cache, identity provider, access-policy middleware or placeholder is implemented for this challenge, and neither issue extends S3/S4/S5 acceptance.

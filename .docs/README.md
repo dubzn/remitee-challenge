@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: infrastructure/contracts/indexer have local and observed CI evidence; S3 API is implemented and locally verified, with publication/remote CI pending. Full startup/demo remains S4. Updated: 2026-11-07. All authored documentation is in English.
+Status: infrastructure/contracts/indexer and S3 API have local and observed published CI evidence. November 8 contract reference generation has separate local checks; full startup/demo remains S4. Updated: 2026-11-08. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. S3 now has [implementation, local acceptance and review](outputs/codex/2026-11-07-read-api-implementation.md); NatSpec, full startup/demo and rehearsal remain. Start with [local commands](local-development.md). The November 5 contract milestone is [closed](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrades stay future work.
+The intended outcome is one reviewable submission within one week. S3 has [implementation, acceptance and review](outputs/codex/2026-11-07-read-api-implementation.md); the [contract reference closeout](outputs/codex/2026-11-08-documentation-closeout.md) has new local verification. Full startup/demo and rehearsal remain. Start with [local commands](local-development.md). The November 5 contract milestone is [closed](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrades stay future work.
 
 ## Start here
 
@@ -23,7 +23,7 @@ The intended outcome is one reviewable submission within one week. S3 now has [i
 9. [Infrastructure-first block and ownership](infrastructure-plan.md): Docker foundation, baseline CI, seven linked GitHub issues and division between Codex and Claude before contracts. See the [Opus/xhigh pre-commit review disposition](outputs/codex/2026-11-04-preflight-decisions.md) for corrections and remaining decisions.
 10. [Contract core interface and storage](contract-design.md): approved and implemented ABI/types/state, mapped SDD completion checks and verification evidence. Pause/upgrade alternatives are future issues [#8](https://github.com/dubzn/remitee-challenge/issues/8)/[#9](https://github.com/dubzn/remitee-challenge/issues/9).
 
-11. [Indexer design and provider options](indexer-design.md): **Ponder selected** after the [concrete recovery/idempotency proof](outputs/codex/2026-11-06-ponder-decision.md). Production integration remains pending.
+11. [Indexer design and provider options](indexer-design.md): **Ponder selected** after the [concrete recovery/idempotency proof](outputs/codex/2026-11-06-ponder-decision.md), then integrated in S2 with observed CI.
 12. [PostgreSQL models](postgres-models.md): relationship diagram, column types, keys, indexes, atomic writes and schema/replay policy for the proposed three tables.
 
 13. [Integrated Ponder runtime](indexer-runtime.md): commands, configuration, recovery and verification.
@@ -32,6 +32,8 @@ The intended outcome is one reviewable submission within one week. S3 now has [i
 15. [Documentation tooling and review](outputs/codex/2026-11-06-documentation-tooling.md): OpenAPI/Swagger UI and NatSpec/forge doc, issues #11/#12 and the Opus/xhigh disposition.
 
 16. [Token compatibility and freeze limits](token-support.md): supported semantics, issuer pause/blacklist scenarios, conditional recovery and current test coverage. [Timing alternatives](contract-design.md#timing-configuration-current-policy-and-future-alternatives) distinguish current constants, permitted deployment immutables and future per-escrow terms.
+
+17. [Contract reference guide](../contracts/README.md): exact lifecycle rules, NatSpec inheritance limits and reproducible pinned Markdown/HTML generation. [November 8 closeout](outputs/codex/2026-11-08-documentation-closeout.md) records tests, assumptions and independent review.
 
 ## Working agreement
 

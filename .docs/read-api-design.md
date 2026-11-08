@@ -1,6 +1,6 @@
 # Read API: reading guide and scope
 
-Status: S3 handlers and raw specification serving are implemented and locally verified on November 7; remote CI remains pending publication. The baseline uses direct PostgreSQL reads without cache/AuthN/AuthZ middleware. The SDD owns acceptance; [OpenAPI and guide](api/README.md) define the exact contract, with [local evidence and review](outputs/codex/2026-11-07-read-api-implementation.md).
+Status: S3 handlers and raw specification serving passed local acceptance on November 7 and [published CI on 80f1367](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160), confirmed November 8. The baseline uses direct PostgreSQL reads without cache/AuthN/AuthZ middleware. The SDD owns acceptance; [OpenAPI and guide](api/README.md) define the exact contract, with [local evidence and review](outputs/codex/2026-11-07-read-api-implementation.md).
 
 The [supplied employer clarification](references.md#stakeholder-clarification-recorded-november-6) accepts internal-process consumers and expected network delay. Here, public API means the documented consumer-facing HTTP contract, not a decision to publish it on the internet. The local anonymous baseline is a challenge scope choice; a real internal deployment should define service identity and access policy. No quantified freshness SLA or authentication mechanism was mandated.
 

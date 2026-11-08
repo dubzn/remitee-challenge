@@ -26,6 +26,7 @@ npm run infra:up
 | `npm run typecheck` | Strict TypeScript checking; no Docker needed. |
 | `npm run check` | Typecheck plus real isolated foundation tests, including failure and cleanup. |
 | `npm run contracts:check` | Format/build/tests and compiled ABI checks in the same pinned Foundry image; no Anvil or DB services. |
+| `npm run contracts:docs` | Generate/check NatSpec Markdown/HTML in ignored `.local/contracts-docs`, using pinned Foundry; no Anvil or DB services. [Reference guide](../contracts/README.md). |
 | `npm run db:sql -- db/migrations/<file.sql>` | Apply a reviewed SQL file atomically to the local DB with stop-on-error. No migrations exist yet. |
 
 `db:sql` is a thin PostgreSQL entry point, not a versioned migration runner: it records no history, does not auto-discover files, and does not make arbitrary SQL idempotent. It accepts only reviewed `.sql` files inside `db/migrations`. Files must contain transaction-compatible SQL without transaction-control statements or psql meta-commands; there is no SQL parser enforcing that convention. For these files a statement error rolls back and returns failure. An explicit `ROLLBACK` can instead exit successfully. Add schema/migration policy with the indexer issue; no CI migration coverage is claimed.

@@ -1,6 +1,6 @@
 # S3 HTTP contract and examples
 
-Status: implemented with local Anvil/PostgreSQL/HTTP evidence on November 7. [openapi.yaml](openapi.yaml) is the single machine-readable HTTP contract; embedded examples remain synthetic. Actual consumer responses, raw spec serving and offline Node checks are implemented in application acceptance. [Review, fixes and verification](../outputs/codex/2026-11-07-read-api-implementation.md) are recorded separately; remote CI is not inferred from local success. The [SDD](../sdd/escrow.md) owns behavior and [progress](../progress.md) owns delivery status.
+Status: implemented with local Anvil/PostgreSQL/HTTP evidence on November 7 and [observed published CI on 80f1367](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160), confirmed November 8. [openapi.yaml](openapi.yaml) is the single machine-readable HTTP contract; embedded examples remain synthetic. Actual consumer responses, raw spec serving and offline Node checks are implemented in application acceptance. [Review, fixes and verification](../outputs/codex/2026-11-07-read-api-implementation.md) are historical local evidence; the [November 8 closeout](../outputs/codex/2026-11-08-documentation-closeout.md) records the new verification separately. The [SDD](../sdd/escrow.md) owns behavior and [progress](../progress.md) owns delivery status.
 
 ## Read this first
 
@@ -54,7 +54,7 @@ Components describe their own current probes. RPC/database up means reachable an
 
 Input validation precedes all readiness checks. The chosen guard order is deployment identity/RPC, captured head, SQL snapshot/checkpoint, scope, startup floor, checkpoint eligibility, canonical checkpoint hash, head/checkpoint recheck, then engine readiness. Health probes components independently where possible, and selects the first failed verification in that order; observation_unavailable is the sanitized catch-all. A noncanonical checkpoint returns 503 during either recoverable or unrecoverable mismatch. Use verified history/Ponder recovery evidence to decide replay: waiting reorgWindowSeconds in wall-clock time proves nothing about the timestamp-based rollback window.
 
-Expected extra-block waiting alone is not failure. After startup, no eligible-backlog threshold/SLA has been selected; expose the backlog without inventing one. Startup catch-up and unverified/noncanonical progress are unready. An unchanged head successfully queried on idle Anvil is not an outage. All data/health successes and errors carry Cache-Control: no-store. Only the three exact GET business paths are covered here; trailing-slash aliases, unknown routes, other methods and static docs are outside their operation schemas. Malformed percent-encoding in matched input returns 400. Serving the raw specification later must remain independent of data readiness while the API process is running; Swagger UI is optional.
+Expected extra-block waiting alone is not failure. After startup, no eligible-backlog threshold/SLA has been selected; expose the backlog without inventing one. Startup catch-up and unverified/noncanonical progress are unready. An unchanged head successfully queried on idle Anvil is not an outage. All data/health successes and errors carry Cache-Control: no-store. Only the three exact GET business paths are covered here; trailing-slash aliases, unknown routes, other methods and static docs are outside their operation schemas. Malformed percent-encoding in matched input returns 400. Raw specification serving is independent of data readiness while the API process is running; Swagger UI is optional.
 
 ## Selected implementation boundary
 
@@ -87,6 +87,6 @@ npm run api:unit
 npm run indexer:test
 ```
 
-The integrated test uses real contracts/Ponder/PostgreSQL and checks public filters, pages, exact time boundaries, transaction traces, repeatable snapshots, 400/404/503 and RPC/DB/startup/reorg behavior. It also verifies raw spec availability during dependency failure and shared-child lifecycle. Remote CI still requires publishing and observing this commit. NatSpec/forge doc and the clean full-start/demo remain #12/S4; Swagger UI is optional.
+The integrated test uses real contracts/Ponder/PostgreSQL and checks public filters, pages, exact time boundaries, transaction traces, repeatable snapshots, 400/404/503 and RPC/DB/startup/reorg behavior. It also verifies raw spec availability during dependency failure and shared-child lifecycle. These S3 checks passed in published CI on 80f1367. November 8 NatSpec/forge doc has separate local verification; the clean full-start/demo remains S4. Swagger UI is optional.
 
 Primary references: [OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0), [Ajv schema support](https://ajv.js.org/json-schema.html), [Redocly core](https://github.com/Redocly/redocly-cli/tree/main/packages/core).

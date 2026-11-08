@@ -162,3 +162,9 @@ Runner usage: current session 93% remaining, resets Nov 7 at 1:29am; current wee
 November 7: candidate-requested Opus/xhigh read-only review through the subscription runner; exit 0, no stderr. [Exact prompt](2026-11-07-read-api-implementation-prompt.md), [unmodified response](2026-11-07-read-api-implementation-review.md) and [Codex disposition/evidence](../codex/2026-11-07-read-api-implementation.md). Verdict READY_WITH_FIXES, no blocking code defect. Codex fixed component startup-floor diagnostics and RPC header attribution, strengthened the proposed regression gaps and passed a full rerun. Claude ran no tests and saw partial pre-fix evidence; final local success is Codex's observation, not a second model approval. Publication/remote CI remain pending.
 
 Runner usage: current session 80% remaining, resets Nov 7 at 1:30am; current week (all models) 91% remaining, resets Nov 8 at 12pm (America/Buenos_Aires).
+
+## S3 and contract documentation closeout review
+
+November 8: candidate-requested Opus/xhigh read-only consult through the subscription runner; exit 0, no stderr. [Exact prompt](2026-11-08-documentation-closeout-prompt.md), [unmodified response](2026-11-08-documentation-closeout-review.md), [Codex dispositions and final verification](../codex/2026-11-08-documentation-closeout.md). Verdict READY_WITH_FIXES. Claude requested version-specific reproducibility evidence and reconciled acceptance/status; optional render/link/default-command and wording checks were also addressed. It read the working tree rather than the outdated initial diff snapshot. Codex verified the final wrapper twice, recorded its hash and retained already-passing fresh-build acceptance. No second Claude verdict or new remote documentation CI success is claimed.
+
+Runner usage: current session 88% remaining, resets Nov 8 at 11pm; current week (all models) 99% remaining, resets Nov 15 at 12pm (America/Buenos_Aires).

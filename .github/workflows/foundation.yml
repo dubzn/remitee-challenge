@@ -37,6 +37,10 @@ jobs:
         timeout-minutes: 10
         run: npm run contracts:check
 
+      - name: Generate and verify contract reference documentation
+        timeout-minutes: 5
+        run: npm run contracts:docs
+
   foundation:
     name: Foundation checks (typecheck, Anvil/PostgreSQL smoke)
     runs-on: ubuntu-24.04

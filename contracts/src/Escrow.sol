@@ -7,18 +7,26 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IEscrow} from "./IEscrow.sol";
 
+/// @title Fixed-deadline ERC-20 escrow
 /// @notice A multi-ID escrow with fixed parties, assets and resolution deadlines.
 /// @dev Supports balance-preserving ERC-20s, including transfers with no return data.
+/// Every payout requires an authorized transaction. No owner, pause, upgrade or rescue path exists.
+/// SafeERC20/ReentrancyGuard errors and token reverts may also propagate to callers.
 contract Escrow is IEscrow, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
+    /// @inheritdoc IEscrow
     uint256 public constant override CANCELLATION_WINDOW = 2 hours;
+    /// @inheritdoc IEscrow
     uint256 public constant override ESCROW_TTL = 7 days;
 
+    /// @dev Last successfully funded ID; zero means no escrows exist.
     uint256 private _lastEscrowId;
+    /// @dev Per-ID records; terminal records remain readable. No per-account ID arrays are stored.
     mapping(uint256 => EscrowRecord) private _escrows;
 
+    /// @inheritdoc IEscrow
     function createEscrow(address beneficiary, address token, uint256 amount)
         external
         nonReentrant
@@ -57,6 +65,7 @@ contract Escrow is IEscrow, ReentrancyGuard {
         emit EscrowCreated(escrowId, msg.sender, beneficiary, token, amount, cancelDeadline, expiresAt, createdAt);
     }
 
+    /// @inheritdoc IEscrow
     function cancelEscrow(uint256 escrowId) external nonReentrant {
         EscrowRecord storage record = _pending(escrowId);
         _requireCaller(escrowId, record.sender);
@@ -65,6 +74,7 @@ contract Escrow is IEscrow, ReentrancyGuard {
         emit EscrowCancelled(escrowId, record.sender);
     }
 
+    /// @inheritdoc IEscrow
     function confirmEscrow(uint256 escrowId) external nonReentrant {
         EscrowRecord storage record = _pending(escrowId);
         _requireCaller(escrowId, record.beneficiary);
@@ -73,6 +83,7 @@ contract Escrow is IEscrow, ReentrancyGuard {
         emit EscrowReleased(escrowId, record.beneficiary);
     }
 
+    /// @inheritdoc IEscrow
     function rejectEscrow(uint256 escrowId) external nonReentrant {
         EscrowRecord storage record = _pending(escrowId);
         _requireCaller(escrowId, record.beneficiary);
@@ -81,6 +92,7 @@ contract Escrow is IEscrow, ReentrancyGuard {
         emit EscrowRejected(escrowId, record.beneficiary);
     }
 
+    /// @inheritdoc IEscrow
     function recoverExpiredEscrow(uint256 escrowId) external nonReentrant {
         EscrowRecord storage record = _pending(escrowId);
         _requireCaller(escrowId, record.sender);
@@ -89,6 +101,7 @@ contract Escrow is IEscrow, ReentrancyGuard {
         emit EscrowExpired(escrowId, record.sender);
     }
 
+    /// @inheritdoc IEscrow
     function getEscrow(uint256 escrowId) external view returns (EscrowRecord memory) {
         return _existing(escrowId);
     }

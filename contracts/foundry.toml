@@ -8,3 +8,9 @@ solc = "0.8.30"
 evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
+
+[doc]
+out = "../.local/contracts-docs"
+title = "Remitee escrow contracts"
+homepage = "README.md"
+book = "book.toml"

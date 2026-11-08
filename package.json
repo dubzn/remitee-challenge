@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run infra:test",
     "contracts:check": "node scripts/contracts.ts",
+    "contracts:docs": "node scripts/contract-docs.ts",
     "poc:ponder": "npm --prefix experiments/ponder-poc run check",
     "infra:up": "node scripts/infra.ts up",
     "infra:down": "node scripts/infra.ts stop",

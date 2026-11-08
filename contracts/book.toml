@@ -1,0 +1,7 @@
+[output.html]
+mathjax-support = false
+
+# The pinned generator's print page corrupts root-relative inheritance links.
+# Keep the requested Markdown and navigable HTML reference; omit that optional view.
+[output.html.print]
+enable = false

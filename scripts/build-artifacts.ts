@@ -41,6 +41,9 @@ export function compileArtifacts(output: string) {
   } finally {
     command(['rm', '--force', '--volumes', name]);
   }
+  return readArtifacts(output);
+}
+export function readArtifacts(output: string) {
   const escrow = JSON.parse(readFileSync(resolve(output, 'Escrow.json'), 'utf8')) as Artifact;
   const token = JSON.parse(readFileSync(resolve(output, 'MockERC20.json'), 'utf8')) as Artifact;
   const shape = (event: {

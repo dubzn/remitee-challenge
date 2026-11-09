@@ -1,3 +1,15 @@
+x-application-environment: &application-environment
+  RPC_URL: http://anvil:8545
+  DATABASE_URL: postgres://remitee:remitee_local_only@postgres:5432/remitee
+  DEPLOYMENT_FILE: /state/deployment.json
+  INDEXER_SCHEMA: ${INDEXER_SCHEMA-escrow_index}
+  INDEXER_PORT: "42069"
+  API_PORT: "3000"
+  API_HOST: 0.0.0.0
+  INDEXER_POLL_MS: ${INDEXER_POLL_MS-1000}
+  CONFIRMATION_DELAY: ${CONFIRMATION_DELAY-2}
+  REORG_WINDOW_SECONDS: ${REORG_WINDOW_SECONDS-180}
+
 services:
   anvil:
     image: ghcr.io/foundry-rs/foundry:v1.4.1@sha256:629bebb49d1ba44a52a9fc14229dd58930e3193b4b206ae43ad00089e9ead95b
@@ -34,5 +46,56 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+  deploy:
+    profiles: ["app"]
+    image: ${COMPOSE_PROJECT_NAME:-remitee-challenge}-app:local
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    environment: *application-environment
+    command: ["node", "scripts/deploy-local.ts", "--compose"]
+    depends_on:
+      anvil:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - deployment-state:/state
+    init: true
+  application:
+    profiles: ["app"]
+    image: ${COMPOSE_PROJECT_NAME:-remitee-challenge}-app:local
+    pull_policy: never
+    environment: *application-environment
+    depends_on:
+      deploy:
+        condition: service_completed_successfully
+    volumes:
+      - deployment-state:/state:ro
+    ports:
+      - "127.0.0.1:${API_PORT-3000}:3000"
+    init: true
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health', {signal: AbortSignal.timeout(3000)}).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+      start_period: 10s
+  demo:
+    profiles: ["demo"]
+    image: ${COMPOSE_PROJECT_NAME:-remitee-challenge}-app:local
+    pull_policy: never
+    environment:
+      <<: *application-environment
+      API_URL: http://application:3000
+    command: ["node", "scripts/demo.ts"]
+    depends_on:
+      application:
+        condition: service_healthy
+    volumes:
+      - deployment-state:/state:ro
+    init: true
 volumes:
   postgres-data:
+  deployment-state:

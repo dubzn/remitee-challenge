@@ -1,6 +1,6 @@
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
-import { settings } from '../apps/indexer/config.ts';
+import { apiListenHost, settings } from '../apps/indexer/config.ts';
 import { connection } from '../apps/indexer/read-model.ts';
 import { apiServer } from '../apps/indexer/api/server.ts';
 
@@ -19,7 +19,7 @@ try {
   };
   process.once('SIGTERM', close);
   process.once('SIGINT', close);
-  server.listen(config.apiPort, '127.0.0.1');
+  server.listen(config.apiPort, apiListenHost());
   await once(server, 'listening');
   console.log(`READ_API_LISTENING ${config.apiPort}`);
 } catch (error) {

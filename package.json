@@ -28,7 +28,8 @@
     "indexer:unit": "node --test apps/indexer/test/unit.test.ts",
     "indexer:test": "node apps/indexer/test/integration.ts",
     "api:spec": "node scripts/api-spec.ts",
-    "api:unit": "node --test apps/indexer/test/api-unit.test.ts"
+    "api:unit": "node --test apps/indexer/test/api-unit.test.ts",
+    "app:test": "node scripts/compose-acceptance.ts"
   },
   "dependencies": {
     "pg": "8.23.1"

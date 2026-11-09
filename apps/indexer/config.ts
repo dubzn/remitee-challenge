@@ -32,6 +32,13 @@ function integer(value: string | undefined, fallback: number, min: number, max: 
     throw new Error(`Invalid ${name}`);
   return result;
 }
+export const admissionDelay = (env: NodeJS.ProcessEnv = process.env) =>
+  integer(env.CONFIRMATION_DELAY, 2, 0, 10_000, 'CONFIRMATION_DELAY');
+export function apiListenHost(env: NodeJS.ProcessEnv = process.env) {
+  const host = env.API_HOST ?? '127.0.0.1';
+  if (!['127.0.0.1', '0.0.0.0'].includes(host)) throw new Error('Invalid API_HOST');
+  return host;
+}
 export function deployment(value: unknown): Deployment {
   const d = value as Deployment;
   if (
@@ -72,7 +79,7 @@ export function settings(env: NodeJS.ProcessEnv = process.env): Settings {
     schema.startsWith('pg_')
   )
     throw new Error('Invalid INDEXER_SCHEMA');
-  const confirmationDelay = integer(env.CONFIRMATION_DELAY, 2, 0, 10_000, 'CONFIRMATION_DELAY');
+  const confirmationDelay = admissionDelay(env);
   const reorgWindow = integer(env.REORG_WINDOW_SECONDS, 180, 1, 600, 'REORG_WINDOW_SECONDS');
   const port = integer(env.INDEXER_PORT, 42069, 1, 65535, 'INDEXER_PORT');
   const apiPort = integer(env.API_PORT, 3000, 1, 65535, 'API_PORT');

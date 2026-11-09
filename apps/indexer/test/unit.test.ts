@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { project } from '../projection.ts';
 import type { EscrowRecord, EventRecord, Observation, ProjectionStore, Hex } from '../projection.ts';
-import { deployment, settings } from '../config.ts';
+import { apiListenHost, deployment, settings } from '../config.ts';
 import { chainReader } from '../rpc.ts';
 const hash = `0x${'ab'.repeat(32)}` as Hex;
 const sender = `0x${'11'.repeat(20)}` as Hex;
@@ -161,6 +161,10 @@ test('configuration rejects invalid scope/policy/descriptor; defaults retain cho
     assert.equal(config.confirmationDelay, 2);
     assert.equal(config.reorgWindow, 180);
     assert.equal(settings({ ...env, API_PORT: '3001' }).scopeKey, config.scopeKey);
+    assert.equal(apiListenHost({}), '127.0.0.1');
+    assert.equal(apiListenHost({ API_HOST: '0.0.0.0' }), '0.0.0.0');
+    assert.throws(() => apiListenHost({ API_HOST: 'example.com' }), /Invalid API_HOST/);
+    assert.equal(settings({ ...env, API_HOST: '0.0.0.0' }).scopeKey, config.scopeKey);
     assert.throws(() => settings({ ...env, API_PORT: '42069' }), /must differ/);
     for (const extra of [
       { INDEXER_SCHEMA: 'public' },

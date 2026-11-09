@@ -22,6 +22,8 @@ erDiagram
         text name
         text actor
         text payload
+        text data
+        text[] topics
     }
     ESCROWS {
         numeric id PK
@@ -33,6 +35,12 @@ erDiagram
         numeric created_at
         numeric cancel_deadline
         numeric expires_at
+        text creation_transaction_hash
+        numeric creation_block_number
+        text creation_block_hash
+        text resolution_transaction_hash
+        numeric resolution_block_number
+        text resolution_block_hash
     }
 ```
 

@@ -52,25 +52,91 @@ Expiry is passive: time alone never transfers tokens. Until recovery, storage re
 
 ## Architecture
 
+Arrows show who initiates each interaction.
+
 ```mermaid
 flowchart LR
-    Wallet[Wallet / local demo] -->|Transactions| Escrow[Escrow contract]
-    Escrow -->|Events through RPC| Ponder[Ponder]
-    Ponder -->|Save events, escrow state and progress together| DB[(PostgreSQL)]
-    DB -->|Read-only queries| API[Read API]
-    RPC[Chain RPC] -->|Check deployment and block hashes| API
+    Client[HTTP client] -->|":3000"| API
+    Demo[Wallet / demo] -->|Transactions| Anvil[Anvil RPC + Escrow]
+    Deploy[deploy job] -->|Deploy contracts| Anvil
+    Deploy -->|Write deployment.json| State[(deployment-state)]
+
+    subgraph application[application container]
+        Launcher[Launcher] -->|Starts and supervises| Ponder
+        Launcher -->|Starts and supervises| API[Read API]
+        API -->|"Check /ready :42069"| Ponder
+    end
+
+    Launcher -->|Read deployment.json| State
+    Ponder -->|Read events after delay| Anvil
+    API -->|Verify block hashes| Anvil
+    Ponder -->|Write| DB[(PostgreSQL)]
+    API -->|Read-only snapshot| DB
 ```
 
-Ponder is the only writer; event-handling rules are separate from its database adapter. The API reads records and indexing progress together and verifies their block hashes against the chain.
+| Component | Runs as | Port | Responsibility |
+| --- | --- | --- | --- |
+| Anvil | `anvil` service | 8545, internal | Local chain and deployed contracts |
+| PostgreSQL | `postgres` service | 5432, internal | Indexed data |
+| Deploy | One-shot `deploy` service | None | Deploys contracts on first start and saves `deployment.json` |
+| Launcher | `application` service, `scripts/indexer.ts` | None | Validates startup, then starts and supervises both processes |
+| Ponder | Child process | 42069, internal | Indexes events; the only database writer |
+| Read API | Child process, `scripts/read-api.ts` | 3000, published | Public HTTP endpoints |
 
-For replaced blocks, Ponder rolls back and reprocesses history within a configurable window: 180 seconds by block timestamps. Unrecoverable mismatches block reads until an explicit rebuild into a fresh database schema. RPC failures return 503 without deleting data. The shared launcher stops both processes if either exits unexpectedly.
+### How an event reaches the API
+
+1. A transaction emits an event in block N.
+2. Ponder can see block N once block N+2 exists (`CONFIRMATION_DELAY=2`).
+3. Handlers validate the transition and commit `journal`, `escrows` and `checkpoint` together.
+4. `GET /escrows/{id}` captures the latest block and reads `escrows` and `checkpoint` in one snapshot.
+5. The API checks block hashes against the chain and derives time-based status from the captured block timestamp.
+
+Deployment identity is verified at startup. For replaced blocks, Ponder rolls back and reprocesses history within a configurable window: 180 seconds by block timestamps. Unrecoverable mismatches block reads until an explicit rebuild into a fresh database schema. RPC failures return 503 without deleting data. The shared launcher stops both processes if either exits unexpectedly.
+
+## Data model
+
+Ponder creates and writes three application tables in one PostgreSQL schema (default `escrow_index`). The API only reads them.
+
+| Table | One row per | Used for |
+| --- | --- | --- |
+| `escrows` | Escrow | Current state, filtered and paginated by the API |
+| `journal` | Contract event | Deduplication and audit trail, keyed by `(transaction_hash, log_index)` |
+| `checkpoint` | Indexer (single row) | Last processed block and hash, read in the same snapshot as `escrows` |
+
+The `_ponder_*` and `_reorg__*` tables and the `ponder_rpc_cache_*` schema belong to Ponder. See [columns and indexes](docs/postgres-models.md).
+
+## Repository map
+
+```text
+contracts/src/            Escrow contract and interface
+contracts/test/           Unit and adversarial-token tests
+apps/indexer/
+  ponder.config.ts        Chain, contract and RPC wiring
+  ponder.schema.ts        Database tables
+  src/index.ts            Event and block handlers
+  src/api/index.ts        Empty Hono app for Ponder's internal server
+  projection.ts           Event rules, independent of Ponder
+  store.ts                Ponder database adapter
+  config.ts               Environment and deployment settings
+  rpc.ts                  RPC client, deployment check, confirmation delay
+  read-model.ts           Verified read: head, snapshot, chain recheck
+  api/                    Public HTTP API: routing, validation, SQL, health
+  test/                   Unit, integration and HTTP acceptance tests
+scripts/
+  indexer.ts              Starts and supervises Ponder and the API
+  read-api.ts             API entry point
+  deploy-local.ts         Local deployment
+  demo.ts                 Full escrow lifecycle demo
+docs/                     API, database, flows and operations
+```
 
 ## Decisions
 
 | Decision | Alternative | Why / trade-off |
 | --- | --- | --- |
 | Ponder | A custom RPC polling worker | I chose existing restart, transaction and fork-recovery machinery over maintaining it myself. Local tests covered duplicates, interrupted writes and reorganizations. |
-| PostgreSQL | SQLite for a lighter setup | I kept Ponder's PostgreSQL backend and a database service shared by indexer/API containers. SQLite saves a service but needs different storage wiring. |
+| Separate read API | Routes inside Ponder's built-in API | I kept the public contract, read transaction and chain checks in a dedicated process. The cost is a second process, SQL against Ponder-managed tables and a shared lifecycle through the launcher. |
+| PostgreSQL | PGlite, Ponder's embedded default | The indexer and API are separate processes that need one shared database, so I use Ponder's PostgreSQL backend. |
 | `CONFIRMATION_DELAY=2` extra blocks | Immediate indexing, or waiting for network finality | I chose a small local delay to exercise confirmation handling. Block 100 is indexed only after block 102 exists. It reduces exposure to recent forks but does not guarantee finality; it is configurable and has not been tuned for a live network. |
 | Immediate beneficiary decisions | An exclusive 2-hour sender cancellation window | I prioritize immediate settlement; the cost is that confirmation can beat cancellation. |
 | Reject this escrow as beneficiary | Reject only zero and sender, as required | This contract cannot call its own beneficiary actions. The extra check prevents an escrow whose beneficiary cannot decide; other contracts remain allowed. |
@@ -89,6 +155,26 @@ For replaced blocks, Ponder rolls back and reprocesses history within a configur
 The API serializes IDs, amounts, block numbers and Unix-second timestamps as decimal strings. Filters run before pagination; expiry uses chain time. Responses include the latest observed block, last indexed block and indexing lag. A 404 means no escrow was found in the indexed blocks; newer transactions may still be waiting. Unverifiable reads return 503.
 
 `canCancel` and `canRecover` describe sender eligibility by recorded status and observed time, without authenticating the caller or guaranteeing transaction success. See [HTTP details](docs/api/README.md).
+
+Trimmed `GET /escrows/1` response after the demo:
+
+```json
+{
+  "escrow": {
+    "id": "1",
+    "amount": "10",
+    "onChainStatus": "CancelledBySender",
+    "effectiveStatus": "CancelledBySender",
+    "canCancel": false,
+    "canRecover": false
+  },
+  "observation": {
+    "confirmationDelay": 2,
+    "headLag": "2",
+    "eligibleBacklog": "0"
+  }
+}
+```
 
 ## Verification
 
@@ -117,18 +203,19 @@ Checks cover deadlines, authorization, adversarial tokens, reentrancy, write int
 | OpenAPI — documentation extra | Response validation keeps the HTTP specification and implementation aligned. Swagger UI is not included. |
 | NatSpec + `forge doc` — documentation extra | Rules, deadlines and errors stay alongside the interface and in a generated reference. |
 
-I left the other suggested bonuses out to focus on contract correctness and reproducible local execution.
+I chose these over the other suggested bonuses to prioritize reproducible local execution and an auditable API contract. Contract tests are example-based boundary and adversarial-token cases; fuzz and invariant tests are the first addition I would make.
 
 ## Assumptions and limitations
 
 - I assume honest, exact-transfer ERC-20s. Funding checks the amount received; payout recipient balances are not rechecked. Fees, rebasing and dishonest success reports are unsupported.
 - Issuer pauses or blacklists can block every exit, including expiry recovery, indefinitely. The contract cannot bypass them or guarantee unconditional refunds.
-- I trust the RPC to provide complete history. A reorganization after the last check remains possible; no atomic check spans database and chain. API state can lag transactions.
+- I trust the RPC to provide complete history, and keep its endpoint and the deployment fixed until restart. A reorganization after the last check remains possible; no atomic check spans database and chain. API state can lag transactions.
 - I target local/internal consumers. The API is anonymous, read-only and published on loopback in Compose. There is no wallet UI, transaction submission, testnet deployment or production audit.
 - Incompatible saved chain/database state is rejected rather than silently reset.
 
 ## Improvements I would evaluate
 
+- Fuzz and invariant tests for the contract, starting with: for each token, the escrow's balance covers the sum of Pending deposits.
 - Service authentication and authorization for an internal deployment: [#14](https://github.com/dubzn/remitee-challenge/issues/14).
 - Caching after measurement, preserving block verification and time-based eligibility: [#13](https://github.com/dubzn/remitee-challenge/issues/13).
 - Rules for accepting tokens and monitoring of issuer restrictions before supporting real funds.

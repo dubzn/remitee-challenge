@@ -131,9 +131,3 @@ export async function queryObservation<T>(
     },
   };
 }
-export async function readObservation(config: Settings, pool: pg.Pool) {
-  const result = await queryObservation(config, pool, async (client) =>
-    (await client.query(`SELECT * FROM "${config.schema}".escrows ORDER BY id`)).rows,
-  );
-  return { items: result.data, observation: result.observation };
-}

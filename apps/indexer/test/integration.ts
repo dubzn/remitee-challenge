@@ -280,6 +280,7 @@ try {
   }
   let running = start();
   let schema = 'acceptance';
+  const apiUrl = `http://127.0.0.1:${apiPort}`;
   async function rows() {
     return (await db!.query(`SELECT * FROM ${schema}.escrows ORDER BY id`)).rows;
   }
@@ -289,18 +290,22 @@ try {
   async function checkpoint() {
     return (await db!.query(`SELECT * FROM ${schema}.checkpoint WHERE id=1`)).rows[0];
   }
-  async function observed(resource = 'escrows'): Promise<{ status: number | null; body: any }> {
+  async function readApi(resource = 'escrows'): Promise<{ status: number | null; body: any }> {
     try {
-      const r = await fetch(`${running.url}/observed/${resource}`, { signal: AbortSignal.timeout(4_000) });
-      return { status: r.status, body: await r.json() };
+      return await apiRequest(apiUrl, resource === 'health' ? '/health' : '/escrows?limit=100');
     } catch {
       return { status: null, body: {} };
     }
   }
   await until(
     'initial application history',
-    async () => (await observed()).status === 200 && (await rows()).length === 5 && (await events()) === 9,
+    async () => (await readApi()).status === 200 && (await rows()).length === 5 && (await events()) === 9,
   );
+  for (const route of ['/observed/escrows', '/observed/health']) {
+    const retired = await fetch(running.url + route);
+    assert.equal(retired.status, 404, 'Retired diagnostic routes must stay absent');
+    await retired.body?.cancel();
+  }
   const initial = await rows();
   assert.deepEqual(
     initial.map((r) => r.status),
@@ -316,7 +321,6 @@ try {
     amount: initial[0].amount,
     traceHashes: true,
   });
-  const apiUrl = `http://127.0.0.1:${apiPort}`;
   await exerciseApi({
     root, runtime, url: apiUrl,
     env: { ...env, INDEXER_PORT: String(port), API_PORT: String(apiPort) },
@@ -327,7 +331,10 @@ try {
   process.kill(JSON.parse(childRecord).apiPid, 'SIGTERM');
   await until('API exit stops whole application', async () => running.child.exitCode !== null);
   assert.notEqual(running.child.exitCode, 0);
-  await until('sibling Ponder listener closed', async () => (await observed()).status === null);
+  await until('sibling Ponder listener closed', async () => {
+    try { await fetch(`${running.url}/ready`, { signal: AbortSignal.timeout(1_000) }); return false; }
+    catch { return true; }
+  });
   running = start();
   await until('shared launcher restart', async () => (await apiRequest(apiUrl, '/health')).status === 200, 90_000);
   record('S3 shared launcher stops siblings and recomputes context on restart', { unexpectedChildExitRefused: true });
@@ -357,7 +364,7 @@ try {
   running = start();
   await until(
     'offline catch-up',
-    async () => (await observed()).status === 200 && (await rows()).length === 7,
+    async () => (await readApi()).status === 200 && (await rows()).length === 7,
     90_000,
   );
   assert.equal(await events(), 11);
@@ -395,13 +402,13 @@ try {
   running = start();
   await until(
     'abrupt recovery',
-    async () => (await observed()).status === 200 && (await rows()).length === 8,
+    async () => (await readApi()).status === 200 && (await rows()).length === 8,
     90_000,
   );
   assert.equal(await events(), 12);
   await stop(running.child);
   running = start();
-  await until('committed restart', async () => (await observed()).status === 200, 90_000);
+  await until('committed restart', async () => (await readApi()).status === 200, 90_000);
   assert.equal(await events(), 12);
   record('physical transaction interruption and committed restart', { partial, escrows: 8, events: 12 });
   const competitor = start('acceptance', { INDEXER_PORT: String(await freePort()), API_PORT: String(await freePort()) });
@@ -417,8 +424,8 @@ try {
   assert.equal(await events(), 12);
   record('one framework writer', { events: 12 });
   rpcAvailable = false;
-  assert.equal((await observed()).status, 503);
-  assert.equal((await observed('health')).status, 503);
+  assert.equal((await readApi()).status, 503);
+  assert.equal((await readApi('health')).status, 503);
   assert.equal((await apiRequest(apiUrl, '/escrows')).status, 503);
   const rpcHealth = await apiRequest(apiUrl, '/health');
   assert.equal(rpcHealth.status, 503);
@@ -427,7 +434,7 @@ try {
   assert.equal((await fetch(`${apiUrl}/openapi.yaml`)).status, 200);
   assert.equal((await apiRequest(apiUrl, '/escrows/0')).status, 400);
   rpcAvailable = true;
-  await until('RPC recovery', async () => (await observed()).status === 200);
+  await until('RPC recovery', async () => (await readApi()).status === 200);
   record('RPC loss blocks data and health', { recovered: true });
   const snap = await rpc('evm_snapshot');
   const ancestor = await client.getBlock();
@@ -436,7 +443,7 @@ try {
   await rpc('anvil_mine', [2, 1]);
   await until(
     'release admitted',
-    async () => (await observed()).body.items?.find((r: any) => r.id === '8')?.status === 'Released',
+    async () => (await readApi()).body.items?.find((r: any) => r.id === '8')?.onChainStatus === 'Released',
   );
   rpcAvailable = false;
   assert.equal(await rpc('evm_revert', [snap]), true);
@@ -449,7 +456,7 @@ try {
   let samples = 0;
   const end = Date.now() + 10_000;
   while (Date.now() < end) {
-    const r = await observed();
+    const r = await readApi();
     if (r.status === 200) {
       const point = BigInt(r.body.observation.indexedThrough.number);
       assert.equal(
@@ -457,7 +464,7 @@ try {
         (await client.getBlock({ blockNumber: point })).hash,
       );
       assert.equal(
-        r.body.items.find((row: any) => row.id === '8').status,
+        r.body.items.find((row: any) => row.id === '8').onChainStatus,
         point < reject.blockNumber ? 'Pending' : 'Rejected',
       );
     } else assert.equal(r.status, 503);
@@ -472,7 +479,7 @@ try {
   }
   await until(
     'canonical rollback',
-    async () => (await observed()).body.items?.find((r: any) => r.id === '8')?.status === 'Rejected',
+    async () => (await readApi()).body.items?.find((r: any) => r.id === '8')?.onChainStatus === 'Rejected',
   );
   assert.equal(
     (
@@ -491,7 +498,7 @@ try {
   await rpc('anvil_mine', [2, 1]);
   await until(
     'deep release admitted',
-    async () => (await observed()).body.items?.find((r: any) => r.id === '7')?.status === 'Released',
+    async () => (await readApi()).body.items?.find((r: any) => r.id === '7')?.onChainStatus === 'Released',
   );
   const releaseHeader = await client.getBlock({ blockNumber: deepRelease.blockNumber });
   await rpc('evm_setNextBlockTimestamp', [Number(releaseHeader.timestamp + 181n)]);
@@ -517,8 +524,8 @@ try {
   let blocked = 0;
   const blockedEnd = Date.now() + 60_000;
   while (Date.now() < blockedEnd) {
-    assert.equal((await observed()).status, 503);
-    assert.equal((await observed('health')).status, 503);
+    assert.equal((await readApi()).status, 503);
+    assert.equal((await readApi('health')).status, 503);
     assert.equal((await apiRequest(apiUrl, '/escrows')).status, 503);
     assert.equal((await apiRequest(apiUrl, '/health')).status, 503);
     blocked++;
@@ -528,7 +535,7 @@ try {
   running = start();
   await until('restart refusal', async () => running.child.exitCode !== null, 45_000);
   assert.notEqual(running.child.exitCode, 0);
-  assert.notEqual((await observed()).status, 200);
+  assert.notEqual((await readApi()).status, 200);
   record('beyond-window fail-closed and restart', {
     rounds: blocked,
     durationMs: 60_000,
@@ -538,7 +545,7 @@ try {
   running = start(schema, {}, true);
   await until(
     'explicit fresh replay',
-    async () => (await observed()).body.items?.find((r: any) => r.id === '7')?.status === 'Rejected',
+    async () => (await readApi()).body.items?.find((r: any) => r.id === '7')?.onChainStatus === 'Rejected',
     90_000,
   );
   assert.equal(await events(), 14);

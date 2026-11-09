@@ -41,6 +41,8 @@ Each read captures a fresh head, reads rows/checkpoint in one read-only repeatab
 
 A canonical older prefix may be served with visible lag/backlog. RPC endpoint and deployment stay fixed while the processes run; restart to validate a different configuration. Ordinary chain reorganizations remain covered by hash checks and Ponder recovery. The RPC/SQL race and RPC completeness limitations remain.
 
+If indexing advances between head capture and the SQL snapshot, a read can temporarily return `checkpoint_not_eligible` (503). Repeat the read to capture a fresh head; this response alone does not establish a reorganization.
+
 Data 503 contains a sanitized observation_unavailable error/reason and no escrow data. Health 503 has ready=false, observation=null and partial diagnostics; component reachability does not certify global canonicality. headLag/eligibleBacklog are nullable until comparable heights are available. Expected extra-block waiting is distinct from unprocessed eligible work; I have no post-startup backlog SLA. See the schema for exact reason/component enums.
 
 Data/health responses carry Cache-Control: no-store. Ponder's internal /health and /ready are engine signals; they do not replace this public health response.

@@ -11,7 +11,7 @@ Make the runtime API, verified reads and local demo understandable as named step
 - The demo visibly follows fixture validation, readiness/policy preflight, deposits, each resolution, passive expiry, recovery and final verification. Preserve preflight-before-writes and every payout/getter/trace assertion.
 - Any launcher cleanup preserves shared startup context and sibling shutdown semantics.
 - Existing type checks, projection/API units, OpenAPI validation, real indexer/HTTP integration and full Docker acceptance pass. Do not weaken assertions or expand delivery scope.
-- Retain Claude's readability review and the implementation/test disposition in the AI appendix; keep the private Spanish mirror current.
+- Retain Claude's readability review and the implementation/test disposition in the AI appendix.
 
 ## Follow-up quality gate
 
@@ -19,6 +19,6 @@ Use confirmationDelay consistently, remove unused server re-exports and the read
 
 ## Verification
 
-Completed locally: root/indexer types, 28 unit tests, OpenAPI validation, 18 integration observations and 10 Docker checks. Before this follow-up, the 11 API tests also passed against the previous runtime; the current API suite has 12 cases, including missing-table classification. [Results, review disposition and minor diagnostic differences](../ai-log/codex/2026-11-09-typescript-readability.md).
+The published runtime passed root/indexer types, 34 unit tests (18 indexer and 16 API), OpenAPI validation, 19 actual indexer/HTTP observations and 13 full Docker checks. [CI run 42706226302](https://github.com/dubzn/remitee-challenge/actions/runs/42706226302) also passed foundation smoke/failure checks, 62 contract tests and generated contract-reference validation.
 
-The terminology/Biome follow-up also passed its quality-gate negative probes, 28 units, 18 integration observations, 10 Docker checks and the foundation/contract/reference checks. [Follow-up evidence](../ai-log/codex/2026-11-09-typescript-cleanup-biome.md).
+The original refactor's baseline comparison and diagnostic differences remain in the [readability record](../ai-log/codex/2026-11-09-typescript-readability.md). The [terminology/Biome record](../ai-log/codex/2026-11-09-typescript-cleanup-biome.md) retains earlier counts and quality-gate negative probes; later [RPC verification](../ai-log/codex/2026-11-09-rpc-optimization.md) records the expanded coverage above.

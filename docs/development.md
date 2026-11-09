@@ -2,6 +2,12 @@
 
 The [README](../README.md) covers Docker startup/demo and the decisions/limits. I use this page for configuration, host development and recovery details.
 
+## Reading the TypeScript
+
+- Start at [HTTP dispatch](../apps/indexer/api/server.ts); follow [health diagnostics](../apps/indexer/api/health.ts) or [escrow queries](../apps/indexer/api/queries.ts). [Verified reads](../apps/indexer/read-model.ts) show the snapshot and chain checks in order.
+- Read `runDemo` in the [demo script](../scripts/demo.ts) for the lifecycle, then follow its phase helpers and explicit outcome table.
+- Read `startApplication` in the [launcher](../scripts/indexer.ts) for startup validation and child supervision.
+
 ## Docker operations
 
 ```sh
@@ -42,6 +48,12 @@ INDEXER_SCHEMA=escrow_replay_1 npm run indexer:start -- --replay
 ```
 
 `--replay` refuses an existing checkpoint table; it never drops tables. I keep the selected settings for later restarts and switch readers only after verified readiness. For this Docker fixture, a fresh explicit project/session is the simplest policy-change path. An RPC timeout alone does not prove a reorg or justify deleting history. Native Ponder /health and /ready remain internal engine signals; consumer reads use the public API.
+
+## Code quality
+
+Run `npm run lint` to check formatting, imports and lint; use `npm run lint:fix` for formatting and safe fixes. CI runs `npm run lint:ci`, which checks without writing and fails on warnings as well as errors. Biome 2.6.6 is pinned in the lockfile and scans TS plus project JSON; dependencies, generated files and the AI appendix are excluded.
+
+The configuration uses the recommended lint preset, with explicit non-null assertions allowed for validated inputs/fixtures. Dynamic JSON any is allowed only in tests and schema/acceptance drivers. Local comments explain guarded cleanup throws and bigint comparisons. [Biome CI behavior](https://biomejs.dev/recipes/continuous-integration/).
 
 ## Host development and tests
 

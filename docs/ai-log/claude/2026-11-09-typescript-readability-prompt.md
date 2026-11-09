@@ -1,0 +1,7 @@
+Review TypeScript readability in this repository, read-only. The author finds the code hard to follow and requests helpers/components where useful, without behavior changes. This is a bounded refactor before challenge delivery, not a new architecture.
+
+Inspect apps/indexer/api/{server,queries,domain}.ts, apps/indexer/read-model.ts, apps/indexer/rpc.ts and scripts/{demo,indexer}.ts. Scan adjacent code/tests only when needed. Do not read the historical AI appendix. Prioritize mixed responsibilities, dense expressions, weak names, hidden ordering and repeated operations. Keep helpers concrete and local; no generic repository/service framework or new dependencies. Pay special attention to readability of the end-to-end flow, not file length alone.
+
+Constraints: preserve routes, bodies/error precedence, exact timing/numeric boundaries, repeatable-read transaction boundaries, RPC identity/canonicality rechecks, writer ownership, child-process shutdown, demo preflight-before-writes and Docker packaging. No Solidity, schema, confirmation policy or feature changes. Tests and docs may be adjusted to explain equivalent behavior, not weakened.
+
+Return at most 600 words: top readability problems with file/function evidence, a proportionate extraction plan, and behavior traps Codex must preserve. Distinguish worthwhile refactors from abstraction for its own sake. Do not edit files or claim test execution. Codex will implement, run checks and request a final review of the resulting diff.

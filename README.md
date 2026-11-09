@@ -98,6 +98,7 @@ The API serializes IDs, amounts, block numbers and Unix-second timestamps as dec
 Use Node 24.14.1/npm 11.11.0, install dependencies with `npm ci`, then run:
 
 ```sh
+npm run lint
 npm run check
 npm run contracts:check
 npm run indexer:typecheck
@@ -115,7 +116,7 @@ Checks cover deadlines, authorization, adversarial tokens, reentrancy, write int
 
 | Addition | Why |
 | --- | --- |
-| CI — optional in the challenge | I chose repeatable contract, API and Docker checks on pushes and pull requests to catch regressions. Includes Solidity formatting and TypeScript checks. |
+| CI — optional in the challenge | I chose repeatable contract, API and Docker checks on pushes and pull requests to catch regressions. Includes Biome formatting, imports and lint, Solidity formatting and TypeScript checks. |
 | OpenAPI — documentation extra | Response validation keeps the HTTP specification and implementation aligned. Swagger UI is not included. |
 | NatSpec + `forge doc` — documentation extra | Rules, deadlines and errors stay alongside the interface and in a generated reference. |
 
@@ -133,7 +134,7 @@ I left the other suggested bonuses out to focus on contract correctness and repr
 
 - Service authentication and authorization for an internal deployment: [#14](https://github.com/dubzn/remitee-challenge/issues/14).
 - Caching after measurement, preserving block verification and time-based eligibility: [#13](https://github.com/dubzn/remitee-challenge/issues/13).
-- Token admission rules and monitoring of issuer restrictions before supporting real funds.
+- Rules for accepting tokens and monitoring of issuer restrictions before supporting real funds.
 - Pause/upgrades after defining authority, exit rights and migration risks: [#8](https://github.com/dubzn/remitee-challenge/issues/8), [#9](https://github.com/dubzn/remitee-challenge/issues/9).
 
 ## Reference docs and AI history

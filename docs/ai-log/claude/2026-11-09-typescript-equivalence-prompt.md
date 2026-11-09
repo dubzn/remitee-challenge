@@ -1,0 +1,9 @@
+Close only the old/new comparison left open by your static readability review. Read-only, no shell or implementation. Do not repeat the broad readability review or scan the historical appendix.
+
+Plain-text HEAD source is available under .local/typescript-readability-2026-11-09/baseline/ with original relative paths. Compare those files with the current matching paths. A textual diff for tracked runtime files is .local/typescript-readability-2026-11-09/runtime.diff. New current modules apps/indexer/api/health.ts and errors.ts are the extraction from the old server; read them as needed.
+
+Prioritize the three gaps: (1) scripts/demo.ts retains each preflight, per-payout balance, expiry, getter, transaction trace and output-field assertion; (2) apps/indexer/read-model.ts preserves checkpoint_hash_mismatch versus chain_changed_during_read and their check order; (3) it preserves 42P01 handling and initial-versus-final deployment identity trace classification. Check scripts/indexer.ts startup floor and child supervision if useful. Report concrete differences, including harmless ones, instead of assuming equivalence. Small post-review edits only renamed validateCheckpoint, removed two shadowed local names, and added precedence/diagnostic comments.
+
+Evidence, not yours: 11 API units passed against both the baseline runtime and refactored runtime; the four new cases pin parser priority, health error priority/partial diagnostics, head<delay rejection and rollback/release. Actual integration passed all 18 observations; Docker passed all 10. New health/errors modules are included without changing the build file list. No Solidity/schema/OpenAPI/dependency changes. Do not claim to have run checks.
+
+At most 350 words: equivalence verdict for these gaps, any required correction with source evidence, and any limitation. No new optional features or refactor suggestions.

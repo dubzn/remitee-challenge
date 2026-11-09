@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomBytes } from 'node:crypto';
 import type { Abi, Hex } from 'viem';
 import { escrowEvents } from '../apps/indexer/abi.ts';
 export type Artifact = { abi: Abi; bytecode: { object: Hex }; deployedBytecode: { object: Hex } };
@@ -11,8 +11,15 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export function compileArtifacts(output: string) {
   mkdirSync(output, { recursive: true });
   const command = (args: string[]) =>
-    execFileSync('docker', args, { cwd: root, encoding: 'utf8', timeout: 120_000, maxBuffer: 8_000_000 });
-  const config = JSON.parse(command(['compose', '-f', 'compose.yaml', 'config', '--format', 'json'])) as {
+    execFileSync('docker', args, {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 120_000,
+      maxBuffer: 8_000_000,
+    });
+  const config = JSON.parse(
+    command(['compose', '-f', 'compose.yaml', 'config', '--format', 'json']),
+  ) as {
     services: { anvil: { image: string } };
   };
   const image = config.services.anvil.image;

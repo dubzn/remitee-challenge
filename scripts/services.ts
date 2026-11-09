@@ -10,7 +10,7 @@ export async function rpc<T>(method: string, params: unknown[] = []): Promise<T>
     signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) throw new Error(`RPC HTTP ${response.status}`);
-  const body = await response.json() as { result?: T; error?: { message: string } };
+  const body = (await response.json()) as { result?: T; error?: { message: string } };
   if (body.error) throw new Error(`${method}: ${body.error.message}`);
   if (body.result === undefined) throw new Error(`${method}: missing result`);
   return body.result;

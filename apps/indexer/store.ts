@@ -1,6 +1,6 @@
 import type { Context } from 'ponder:registry';
 import { escrow, journal } from 'ponder:schema';
-import type { ProjectionStore, EventRecord } from './projection.ts';
+import type { EventRecord, ProjectionStore } from './projection.ts';
 // All writes belong to Ponder's current unit of work and rollback history.
 export function ponderStore(context: Context): ProjectionStore {
   return {

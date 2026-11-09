@@ -106,8 +106,7 @@ export async function project(observation: Observation, store: ProjectionStore) 
     const outcome = outcomes[event.name];
     const beneficiaryAction = event.name === 'EscrowReleased' || event.name === 'EscrowRejected';
     if (
-      !current ||
-      current.status !== 'Pending' ||
+      current?.status !== 'Pending' ||
       !outcome ||
       event.actor !== (beneficiaryAction ? current.beneficiary : current.sender)
     )

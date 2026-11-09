@@ -1,4 +1,4 @@
-import { onchainTable, primaryKey, index } from 'ponder';
+import { index, onchainTable, primaryKey } from 'ponder';
 export const checkpoint = onchainTable('checkpoint', (t) => ({
   id: t.integer().primaryKey(),
   scopeKey: t.text().notNull(),

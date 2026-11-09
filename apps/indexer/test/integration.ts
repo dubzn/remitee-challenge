@@ -1,22 +1,21 @@
 import assert from 'node:assert/strict';
-import { spawn, execFileSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import { once } from 'node:events';
 import { createWriteStream, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { randomBytes } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { once } from 'node:events';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { createPublicClient, createWalletClient, http, maxUint256, keccak256 } from 'viem';
 import type { Address, Hex } from 'viem';
+import { createPublicClient, createWalletClient, http, keccak256, maxUint256 } from 'viem';
 import { anvil } from 'viem/chains';
 import { compileArtifacts } from '../../../scripts/build-artifacts.ts';
 import { captureDeployment } from '../../../scripts/deployment-manifest.ts';
-import { settings } from '../config.ts';
-import { chainReader } from '../rpc.ts';
 import { apiRequest, exerciseApi, exerciseTimeBoundaries } from './api-acceptance.ts';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const project =
   process.env.REMITEE_INDEXER_TEST_PROJECT ??
@@ -39,7 +38,12 @@ let duplicateLogs = false;
 let duplicateResponses = 0;
 let sequence = 0;
 const command = (args: string[]) =>
-  execFileSync('docker', args, { cwd: root, encoding: 'utf8', timeout: 120_000, maxBuffer: 8_000_000 });
+  execFileSync('docker', args, {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 120_000,
+    maxBuffer: 8_000_000,
+  });
 const compose = (args: string[]) =>
   command([
     'compose',
@@ -158,10 +162,16 @@ try {
   const receipt = (hash: Hex) => client.waitForTransactionReceipt({ hash, pollingInterval: 20 });
   async function deploy() {
     const escrow = await receipt(
-      await wallet.deployContract({ abi: artifacts.escrow.abi, bytecode: artifacts.escrow.bytecode.object }),
+      await wallet.deployContract({
+        abi: artifacts.escrow.abi,
+        bytecode: artifacts.escrow.bytecode.object,
+      }),
     );
     const token = await receipt(
-      await wallet.deployContract({ abi: artifacts.token.abi, bytecode: artifacts.token.bytecode.object }),
+      await wallet.deployContract({
+        abi: artifacts.token.abi,
+        bytecode: artifacts.token.bytecode.object,
+      }),
     );
     return { escrow, token };
   }
@@ -194,7 +204,10 @@ try {
     timeout: 30_000,
   });
   assert.equal(await client.getTransactionCount({ address: sender }), nonceBefore);
-  record('local deploy CLI and validated reuse', { distinctDeployment: true, secondRunNoTransaction: true });
+  record('local deploy CLI and validated reuse', {
+    distinctDeployment: true,
+    secondRunNoTransaction: true,
+  });
 
   await receipt(
     await wallet.writeContract({
@@ -268,7 +281,13 @@ try {
       {
         cwd: root,
         detached: true,
-        env: { ...env, INDEXER_SCHEMA: schema, INDEXER_PORT: String(port), API_PORT: String(apiPort), ...extra },
+        env: {
+          ...env,
+          INDEXER_SCHEMA: schema,
+          INDEXER_PORT: String(port),
+          API_PORT: String(apiPort),
+          ...extra,
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
       },
     );
@@ -285,7 +304,8 @@ try {
     return (await db!.query(`SELECT * FROM ${schema}.escrows ORDER BY id`)).rows;
   }
   async function events() {
-    return (await db!.query(`SELECT count(*)::int AS n FROM ${schema}.journal`)).rows[0].n as number;
+    return (await db!.query(`SELECT count(*)::int AS n FROM ${schema}.journal`)).rows[0]
+      .n as number;
   }
   async function checkpoint() {
     return (await db!.query(`SELECT * FROM ${schema}.checkpoint WHERE id=1`)).rows[0];
@@ -299,7 +319,8 @@ try {
   }
   await until(
     'initial application history',
-    async () => (await readApi()).status === 200 && (await rows()).length === 5 && (await events()) === 9,
+    async () =>
+      (await readApi()).status === 200 && (await rows()).length === 5 && (await events()) === 9,
   );
   for (const route of ['/observed/escrows', '/observed/health']) {
     const retired = await fetch(running.url + route);
@@ -322,22 +343,43 @@ try {
     traceHashes: true,
   });
   await exerciseApi({
-    root, runtime, url: apiUrl,
+    root,
+    runtime,
+    url: apiUrl,
     env: { ...env, INDEXER_PORT: String(port), API_PORT: String(apiPort) },
-    sender, beneficiary, db, rpc, until, freePort, stop, record,
+    sender,
+    beneficiary,
+    db,
+    rpc,
+    until,
+    freePort,
+    stop,
+    record,
   });
-  const childRecord = readFileSync(running.log, 'utf8').split('\n').find(line => line.includes('"event":"APPLICATION_CHILDREN"'));
+  const childRecord = readFileSync(running.log, 'utf8')
+    .split('\n')
+    .find((line) => line.includes('"event":"APPLICATION_CHILDREN"'));
   assert(childRecord);
   process.kill(JSON.parse(childRecord).apiPid, 'SIGTERM');
   await until('API exit stops whole application', async () => running.child.exitCode !== null);
   assert.notEqual(running.child.exitCode, 0);
   await until('sibling Ponder listener closed', async () => {
-    try { await fetch(`${running.url}/ready`, { signal: AbortSignal.timeout(1_000) }); return false; }
-    catch { return true; }
+    try {
+      await fetch(`${running.url}/ready`, { signal: AbortSignal.timeout(1_000) });
+      return false;
+    } catch {
+      return true;
+    }
   });
   running = start();
-  await until('shared launcher restart', async () => (await apiRequest(apiUrl, '/health')).status === 200, 90_000);
-  record('S3 shared launcher stops siblings and recomputes context on restart', { unexpectedChildExitRefused: true });
+  await until(
+    'shared launcher restart',
+    async () => (await apiRequest(apiUrl, '/health')).status === 200,
+    90_000,
+  );
+  record('S3 shared launcher stops siblings and recomputes context on restart', {
+    unexpectedChildExitRefused: true,
+  });
   const sixth = await create();
   await delay(500);
   assert.equal((await rows()).length, 5);
@@ -345,14 +387,14 @@ try {
   await delay(500);
   assert.equal((await rows()).length, 5);
   await rpc('anvil_mine', [1, 1]);
-  await until('exact admission delay', async () => (await rows()).length === 6);
+  await until('exact confirmation delay', async () => (await rows()).length === 6);
   await rpc('anvil_mine', [1, 1]);
   await until(
     'empty block advances progress',
     async () => BigInt((await checkpoint()).number) > sixth.blockNumber,
   );
   assert.equal(await events(), 10);
-  record('N-1/N/N+1 admission and empty checkpoint', {
+  record('N-1/N/N+1 confirmation delay and empty checkpoint', {
     delay: 2,
     visibleAtExtraBlocks: [false, false, true, true],
     events: 10,
@@ -410,8 +452,15 @@ try {
   running = start();
   await until('committed restart', async () => (await readApi()).status === 200, 90_000);
   assert.equal(await events(), 12);
-  record('physical transaction interruption and committed restart', { partial, escrows: 8, events: 12 });
-  const competitor = start('acceptance', { INDEXER_PORT: String(await freePort()), API_PORT: String(await freePort()) });
+  record('physical transaction interruption and committed restart', {
+    partial,
+    escrows: 8,
+    events: 12,
+  });
+  const competitor = start('acceptance', {
+    INDEXER_PORT: String(await freePort()),
+    API_PORT: String(await freePort()),
+  });
   await until(
     'competitor excluded',
     async () =>
@@ -442,8 +491,9 @@ try {
   const release = await act('confirmEscrow', 8n, true);
   await rpc('anvil_mine', [2, 1]);
   await until(
-    'release admitted',
-    async () => (await readApi()).body.items?.find((r: any) => r.id === '8')?.onChainStatus === 'Released',
+    'release indexed',
+    async () =>
+      (await readApi()).body.items?.find((r: any) => r.id === '8')?.onChainStatus === 'Released',
   );
   rpcAvailable = false;
   assert.equal(await rpc('evm_revert', [snap]), true);
@@ -471,21 +521,29 @@ try {
     const publicRead = await apiRequest(apiUrl, '/escrows/8');
     if (publicRead.status === 200) {
       const point = BigInt(publicRead.body.observation.indexedThrough.number);
-      assert.equal(publicRead.body.observation.indexedThrough.hash, (await client.getBlock({ blockNumber: point })).hash);
-      assert.equal(publicRead.body.escrow.onChainStatus, point < reject.blockNumber ? 'Pending' : 'Rejected');
+      assert.equal(
+        publicRead.body.observation.indexedThrough.hash,
+        (await client.getBlock({ blockNumber: point })).hash,
+      );
+      assert.equal(
+        publicRead.body.escrow.onChainStatus,
+        point < reject.blockNumber ? 'Pending' : 'Rejected',
+      );
     } else assert.equal(publicRead.status, 503);
     samples++;
     await delay(100);
   }
   await until(
     'canonical rollback',
-    async () => (await readApi()).body.items?.find((r: any) => r.id === '8')?.onChainStatus === 'Rejected',
+    async () =>
+      (await readApi()).body.items?.find((r: any) => r.id === '8')?.onChainStatus === 'Rejected',
   );
   assert.equal(
     (
-      await db.query('SELECT count(*)::int AS n FROM acceptance.journal WHERE transaction_hash=$1', [
-        release.transactionHash,
-      ])
+      await db.query(
+        'SELECT count(*)::int AS n FROM acceptance.journal WHERE transaction_hash=$1',
+        [release.transactionHash],
+      )
     ).rows[0].n,
     0,
   );
@@ -497,16 +555,22 @@ try {
   const deepRelease = await act('confirmEscrow', 7n, true);
   await rpc('anvil_mine', [2, 1]);
   await until(
-    'deep release admitted',
-    async () => (await readApi()).body.items?.find((r: any) => r.id === '7')?.onChainStatus === 'Released',
+    'deep release indexed',
+    async () =>
+      (await readApi()).body.items?.find((r: any) => r.id === '7')?.onChainStatus === 'Released',
   );
   const releaseHeader = await client.getBlock({ blockNumber: deepRelease.blockNumber });
   await rpc('evm_setNextBlockTimestamp', [Number(releaseHeader.timestamp + 181n)]);
   await rpc('evm_mine');
   await rpc('anvil_mine', [2, 1]);
   const finalized = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
-  await until('window elapsed checkpoint', async () => BigInt((await checkpoint()).number) === finalized);
-  assert((await client.getBlock({ blockNumber: finalized })).timestamp - releaseHeader.timestamp >= 180n);
+  await until(
+    'window elapsed checkpoint',
+    async () => BigInt((await checkpoint()).number) === finalized,
+  );
+  assert(
+    (await client.getBlock({ blockNumber: finalized })).timestamp - releaseHeader.timestamp >= 180n,
+  );
   await delay(300);
   rpcAvailable = false;
   assert.equal(await rpc('evm_revert', [deep]), true);
@@ -545,15 +609,17 @@ try {
   running = start(schema, {}, true);
   await until(
     'explicit fresh replay',
-    async () => (await readApi()).body.items?.find((r: any) => r.id === '7')?.onChainStatus === 'Rejected',
+    async () =>
+      (await readApi()).body.items?.find((r: any) => r.id === '7')?.onChainStatus === 'Rejected',
     90_000,
   );
   assert.equal(await events(), 14);
   assert.equal(
     (
-      await db.query('SELECT count(*)::int AS n FROM validated_replay.journal WHERE transaction_hash=$1', [
-        deepRelease.transactionHash,
-      ])
+      await db.query(
+        'SELECT count(*)::int AS n FROM validated_replay.journal WHERE transaction_hash=$1',
+        [deepRelease.transactionHash],
+      )
     ).rows[0].n,
     0,
   );
@@ -579,13 +645,20 @@ try {
   assert.match(readFileSync(wrongCode.log, 'utf8'), /deployment_identity_mismatch/);
   duplicateLogs = true;
   const malformed = start('malformed_provider');
-  await until('malformed duplicate RPC logs refused', async () => malformed.child.exitCode !== null, 45_000);
+  await until(
+    'malformed duplicate RPC logs refused',
+    async () => malformed.child.exitCode !== null,
+    45_000,
+  );
   assert.notEqual(malformed.child.exitCode, 0);
   assert.match(readFileSync(malformed.log, 'utf8'), /Inconsistent RPC response data/);
   assert(duplicateResponses > 0);
   assert.equal(await events(), 14);
   duplicateLogs = false;
-  record('malformed duplicate log response refused', { existingDataPreserved: true, duplicateResponses });
+  record('malformed duplicate log response refused', {
+    existingDataPreserved: true,
+    duplicateResponses,
+  });
   await rpc('anvil_reset');
   const replacement = await deploy();
   assert.equal(replacement.escrow.contractAddress, escrow);
@@ -597,7 +670,8 @@ try {
   record('scope, replay, code and chain-reset identity refusal', { oldDataPreserved: true });
   record('S2 and S3 local application acceptance', {
     result: 'pass',
-    scope: 'Indexer and public HTTP pass locally; observed remote CI and full startup/demo remain separate',
+    scope:
+      'Indexer and public HTTP pass locally; observed remote CI and full startup/demo remain separate',
   });
 } catch (error) {
   console.error(error);

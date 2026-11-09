@@ -1,10 +1,10 @@
-import { createPublicClient, http, keccak256 } from 'viem';
-import type { Address, Hex } from 'viem';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { deployment } from '../apps/indexer/config.ts';
+import type { Address, Hex } from 'viem';
+import { createPublicClient, http, keccak256 } from 'viem';
 import type { Deployment } from '../apps/indexer/config.ts';
+import { deployment } from '../apps/indexer/config.ts';
 export async function captureDeployment(
   rpcUrl: string,
   address: Address,
@@ -42,7 +42,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   try {
     const [address, hash, output] = process.argv.slice(2);
     if (!process.env.RPC_URL || !address || !hash || !output)
-      throw new Error('Usage: RPC_URL=... npm run indexer:manifest -- ADDRESS DEPLOYMENT_TX OUTPUT');
+      throw new Error(
+        'Usage: RPC_URL=... npm run indexer:manifest -- ADDRESS DEPLOYMENT_TX OUTPUT',
+      );
     const { compileArtifacts } = await import('./build-artifacts.ts');
     const artifacts = compileArtifacts(resolve('.local/artifacts'));
     const manifest = await captureDeployment(
@@ -52,7 +54,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       keccak256(artifacts.escrow.deployedBytecode.object),
     );
     mkdirSync(dirname(resolve(output)), { recursive: true });
-    writeFileSync(resolve(output), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
+    writeFileSync(resolve(output), `${JSON.stringify(manifest, null, 2)}\n`, { flag: 'wx' });
     console.log('Validated descriptor written');
   } catch {
     console.error('MANIFEST_REFUSED: check RPC, deployment, compiled code and unused output path');

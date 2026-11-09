@@ -28,12 +28,16 @@
     "indexer:test": "node apps/indexer/test/integration.ts",
     "api:spec": "node scripts/api-spec.ts",
     "api:unit": "node --test apps/indexer/test/api-unit.test.ts",
-    "app:test": "node scripts/compose-acceptance.ts"
+    "app:test": "node scripts/compose-acceptance.ts",
+    "lint": "biome check . --error-on-warnings",
+    "lint:fix": "biome check --write .",
+    "lint:ci": "biome ci . --error-on-warnings"
   },
   "dependencies": {
     "pg": "8.23.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.6",
     "@redocly/openapi-core": "2.76.0",
     "@types/node": "24.19.2",
     "@types/pg": "8.23.1",

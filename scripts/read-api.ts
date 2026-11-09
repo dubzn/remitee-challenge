@@ -1,8 +1,8 @@
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
+import { apiServer } from '../apps/indexer/api/server.ts';
 import { apiListenHost, settings } from '../apps/indexer/config.ts';
 import { connection } from '../apps/indexer/read-model.ts';
-import { apiServer } from '../apps/indexer/api/server.ts';
 
 try {
   if (!/^(0|[1-9][0-9]*)$/.test(process.env.INDEXER_STARTUP_MIN_BLOCK ?? ''))
@@ -10,9 +10,15 @@ try {
   const config = settings();
   const pool = connection(config);
   pool.on('error', () => console.error('READ_API_DATABASE_CONNECTION_LOST'));
-  const server = apiServer(config, pool, fileURLToPath(new URL('../docs/api/openapi.yaml', import.meta.url)));
+  const server = apiServer(
+    config,
+    pool,
+    fileURLToPath(new URL('../docs/api/openapi.yaml', import.meta.url)),
+  );
   const close = () => {
-    server.close(() => { void pool.end(); });
+    server.close(() => {
+      void pool.end();
+    });
     server.closeIdleConnections();
     const deadline = setTimeout(() => process.exit(1), 5_000);
     deadline.unref();
@@ -23,6 +29,9 @@ try {
   await once(server, 'listening');
   console.log(`READ_API_LISTENING ${config.apiPort}`);
 } catch (error) {
-  console.error('READ_API_START_REFUSED', error instanceof Error ? error.message : 'configuration unavailable');
+  console.error(
+    'READ_API_START_REFUSED',
+    error instanceof Error ? error.message : 'configuration unavailable',
+  );
   process.exitCode = 1;
 }

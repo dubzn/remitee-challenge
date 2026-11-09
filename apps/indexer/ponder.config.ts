@@ -3,6 +3,7 @@ import { custom } from 'viem';
 import { escrowEvents } from './abi.ts';
 import { settings } from './config.ts';
 import { chainReader } from './rpc.ts';
+
 const config = settings();
 export default createConfig({
   database: { kind: 'postgres', connectionString: config.databaseUrl },
@@ -24,5 +25,7 @@ export default createConfig({
       startBlock: config.deployment.deploymentBlock,
     },
   },
-  blocks: { Progress: { chain: 'escrow', startBlock: config.deployment.deploymentBlock, interval: 1 } },
+  blocks: {
+    Progress: { chain: 'escrow', startBlock: config.deployment.deploymentBlock, interval: 1 },
+  },
 });

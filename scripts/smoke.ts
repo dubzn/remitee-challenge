@@ -40,14 +40,26 @@ try {
   await client.query('BEGIN');
   await client.query('INSERT INTO foundation_probe VALUES (1)');
   await client.query('ROLLBACK');
-  assert.equal((await client.query('SELECT count(*)::int AS count FROM foundation_probe')).rows[0].count, 0);
+  assert.equal(
+    (await client.query('SELECT count(*)::int AS count FROM foundation_probe')).rows[0].count,
+    0,
+  );
   console.log('PASS real PostgreSQL transaction rollback');
 
   // Two clients in the same database contend for one session advisory key.
-  assert.equal((await client.query('SELECT pg_try_advisory_lock(31337) AS locked')).rows[0].locked, true);
-  assert.equal((await contender.query('SELECT pg_try_advisory_lock(31337) AS locked')).rows[0].locked, false);
+  assert.equal(
+    (await client.query('SELECT pg_try_advisory_lock(31337) AS locked')).rows[0].locked,
+    true,
+  );
+  assert.equal(
+    (await contender.query('SELECT pg_try_advisory_lock(31337) AS locked')).rows[0].locked,
+    false,
+  );
   await client.query('SELECT pg_advisory_unlock(31337)');
-  assert.equal((await contender.query('SELECT pg_try_advisory_lock(31337) AS locked')).rows[0].locked, true);
+  assert.equal(
+    (await contender.query('SELECT pg_try_advisory_lock(31337) AS locked')).rows[0].locked,
+    true,
+  );
   await contender.query('SELECT pg_advisory_unlock(31337)');
   console.log('PASS advisory lock contention and release');
 } finally {

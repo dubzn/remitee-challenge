@@ -1,0 +1,56 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "scripts/**/*.ts",
+      "apps/indexer/**/*.ts",
+      "package.json",
+      "tsconfig.json",
+      "apps/indexer/package.json",
+      "apps/indexer/tsconfig.json",
+      "biome.json",
+      "!!apps/indexer/generated",
+      "!apps/indexer/ponder-env.d.ts",
+      "!!apps/indexer/.ponder"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "noNonNullAssertion": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/indexer/test/**/*.ts",
+        "scripts/api-spec.ts",
+        "scripts/compose-acceptance.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
+}

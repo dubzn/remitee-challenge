@@ -1,11 +1,12 @@
-import { ponder } from 'ponder:registry';
 import type { Context } from 'ponder:registry';
+import { ponder } from 'ponder:registry';
 import { checkpoint } from 'ponder:schema';
 import type { Hex } from 'viem';
 import { settings } from '../config.ts';
-import { project } from '../projection.ts';
 import type { EventName, Observation } from '../projection.ts';
+import { project } from '../projection.ts';
 import { ponderStore } from '../store.ts';
+
 const config = settings();
 type Envelope = {
   args: { id: bigint } & Record<string, unknown>;
@@ -24,7 +25,11 @@ async function consume(
   const args = Object.fromEntries(
     Object.entries(event.args).map(([key, value]) => [
       key,
-      typeof value === 'bigint' ? value.toString() : typeof value === 'string' ? value.toLowerCase() : value,
+      typeof value === 'bigint'
+        ? value.toString()
+        : typeof value === 'string'
+          ? value.toLowerCase()
+          : value,
     ]),
   );
   await project(

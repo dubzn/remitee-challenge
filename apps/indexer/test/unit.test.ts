@@ -1,12 +1,19 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { project } from '../projection.ts';
-import type { EscrowRecord, EventRecord, Observation, ProjectionStore, Hex } from '../projection.ts';
+import test from 'node:test';
 import { apiListenHost, deployment, settings } from '../config.ts';
+import type {
+  EscrowRecord,
+  EventRecord,
+  Hex,
+  Observation,
+  ProjectionStore,
+} from '../projection.ts';
+import { project } from '../projection.ts';
 import { chainReader } from '../rpc.ts';
+
 const hash = `0x${'ab'.repeat(32)}` as Hex;
 const sender = `0x${'11'.repeat(20)}` as Hex;
 const beneficiary = `0x${'22'.repeat(20)}` as Hex;
@@ -108,7 +115,10 @@ test('missing creation, wrong actor and a new competing terminal event fail', as
   await assert.rejects(project(terminal('EscrowReleased'), s.port), /Invalid escrow transition/);
   assert.equal(s.journal.size, 0);
   await project(creation, s.port);
-  await assert.rejects(project(terminal('EscrowReleased', sender), s.port), /Invalid escrow transition/);
+  await assert.rejects(
+    project(terminal('EscrowReleased', sender), s.port),
+    /Invalid escrow transition/,
+  );
   await project(terminal('EscrowRejected'), s.port);
   await assert.rejects(
     project({ ...terminal('EscrowReleased'), logIndex: 2 }, s.port),
@@ -176,7 +186,10 @@ test('configuration rejects invalid scope/policy/descriptor; defaults retain cho
       assert.throws(() => settings({ ...env, ...extra }));
     assert.notEqual(settings({ ...env, CONFIRMATION_DELAY: '3' }).scopeKey, config.scopeKey);
     assert.throws(() => deployment({}), /Invalid deployment/);
-    await assert.rejects(chainReader(config).rpc('eth_sendTransaction', []), /rpc_method_not_readonly/);
+    await assert.rejects(
+      chainReader(config).rpc('eth_sendTransaction', []),
+      /rpc_method_not_readonly/,
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -1,5 +1,5 @@
-import { keccak256 } from 'viem';
 import type { Hex } from 'viem';
+import { keccak256 } from 'viem';
 import type { Settings } from './config.ts';
 export type Header = { number: Hex; hash: Hex; timestamp: Hex };
 export class ObservationError extends Error {
@@ -11,7 +11,9 @@ export class ObservationError extends Error {
 }
 export function chainReader(config: Settings) {
   async function rpc<T = unknown>(method: string, params: readonly unknown[] = []): Promise<T> {
-    if (!/^(eth_(chainId|blockNumber|call|get[A-Za-z]+)|net_version|web3_clientVersion)$/.test(method))
+    if (
+      !/^(eth_(chainId|blockNumber|call|get[A-Za-z]+)|net_version|web3_clientVersion)$/.test(method)
+    )
       throw new ObservationError('rpc_method_not_readonly');
     try {
       const response = await fetch(config.rpcUrl, {
@@ -63,13 +65,17 @@ export function chainReader(config: Settings) {
   }: {
     method: string;
     params?: readonly unknown[];
-  }): Promise<any> {
+  }): Promise<unknown> {
     await identity();
     const head = BigInt(await rpc<Hex>('eth_blockNumber'));
-    const eligible = head >= BigInt(config.confirmationDelay) ? head - BigInt(config.confirmationDelay) : 0n;
+    const eligible =
+      head >= BigInt(config.confirmationDelay) ? head - BigInt(config.confirmationDelay) : 0n;
     const hex = `0x${eligible.toString(16)}`;
     if (method === 'eth_blockNumber') return hex;
-    if (method === 'eth_getBlockByNumber' && ['latest', 'safe', 'finalized'].includes(String(params[0])))
+    if (
+      method === 'eth_getBlockByNumber' &&
+      ['latest', 'safe', 'finalized'].includes(String(params[0]))
+    )
       return rpc(method, [hex, params[1] ?? false]);
     if (method === 'eth_getBlockByNumber' && BigInt(String(params[0])) > eligible)
       throw new ObservationError('block_not_eligible');
@@ -78,22 +84,26 @@ export function chainReader(config: Settings) {
       // EIP-234 hash filters cannot be combined with fromBlock/toBlock.
       if (filter.blockHash) {
         const header = await rpc<Header | null>('eth_getBlockByHash', [filter.blockHash, false]);
-        if (!header || BigInt(header.number) > eligible) throw new ObservationError('block_not_eligible');
+        if (!header || BigInt(header.number) > eligible)
+          throw new ObservationError('block_not_eligible');
         return rpc(method, params);
       }
-      const from = filter.fromBlock && filter.fromBlock !== 'earliest' ? BigInt(filter.fromBlock) : 0n;
+      const from =
+        filter.fromBlock && filter.fromBlock !== 'earliest' ? BigInt(filter.fromBlock) : 0n;
       if (from > eligible) return [];
       const requested =
         !filter.toBlock || ['latest', 'safe', 'finalized'].includes(filter.toBlock)
           ? eligible
           : BigInt(filter.toBlock);
-      return rpc(method, [
-        { ...filter, toBlock: `0x${(requested > eligible ? eligible : requested).toString(16)}` },
-      ]);
+      // biome-ignore lint/complexity/useMathMinMax: Math.min cannot compare bigint block heights.
+      const toBlock = requested > eligible ? eligible : requested;
+      return rpc(method, [{ ...filter, toBlock: `0x${toBlock.toString(16)}` }]);
     }
-    const result = await rpc<any>(method, params);
-    if (method === 'eth_getBlockByHash' && result && BigInt(result.number) > eligible)
-      throw new ObservationError('block_not_eligible');
+    const result = await rpc(method, params);
+    if (method === 'eth_getBlockByHash' && result) {
+      const header = result as Header;
+      if (BigInt(header.number) > eligible) throw new ObservationError('block_not_eligible');
+    }
     return result;
   }
   return { rpc, block, identity, delayedRequest };

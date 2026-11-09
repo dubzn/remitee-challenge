@@ -1,3 +1,4 @@
+# Keep this Foundry image in sync with the Anvil image in compose.yaml.
 FROM ghcr.io/foundry-rs/foundry:v1.4.1@sha256:629bebb49d1ba44a52a9fc14229dd58930e3193b4b206ae43ad00089e9ead95b AS contracts
 USER root
 WORKDIR /build

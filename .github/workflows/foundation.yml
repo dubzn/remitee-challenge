@@ -1,8 +1,5 @@
-# Foundation only: strict TypeScript plus real, isolated Anvil/PostgreSQL smoke
-# and negative checks via the same `npm run check` used locally. A separate job
-# runs real contract tests. The indexer job runs actual application acceptance;
-# read API responses share the application suite. A separate Compose job verifies
-# the complete reviewer startup and four-outcome demo without host app dependencies.
+# Contract, indexer/API and full Docker acceptance alongside foundation smoke checks.
+# Jobs reuse the local commands and clean up only their isolated test projects.
 name: Foundation
 
 on:

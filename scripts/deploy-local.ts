@@ -34,6 +34,13 @@ try {
       throw new Error(
         'Packaged build differs from existing deployment; use an explicit fresh project/reset',
       );
+    // Anvil 1.4.1 restores blocks without restoring its mining clock. Resume
+    // after the saved head so the next transaction cannot rewind deadlines.
+    const head = await client.getBlock();
+    await client.request({
+      method: 'evm_setNextBlockTimestamp' as never,
+      params: [`0x${(head.timestamp + 1n).toString(16)}`] as never,
+    });
     console.log('Reusing validated local deployment descriptor');
   } else {
     const [sender] = await createWalletClient({

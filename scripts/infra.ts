@@ -44,48 +44,6 @@ function tools(project: string, script: string, capture = false) {
 }
 
 function up(project: string) {
-  if (project === devProject) {
-    const existing = compose(project, ['ps', '--all', '--format', 'json'], true);
-    if (existing.status !== 0)
-      throw new Error(existing.stderr || 'Cannot inspect local containers');
-    const services = (existing.stdout || '')
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .flatMap(
-        (line) =>
-          JSON.parse(line) as
-            | { Service: string; State: string; Health: string }
-            | { Service: string; State: string; Health: string }[],
-      );
-    const volumes = spawnSync(
-      'docker',
-      [
-        'volume',
-        'ls',
-        '--filter',
-        `label=com.docker.compose.project=${project}`,
-        '--format',
-        '{{.Name}}',
-      ],
-      { encoding: 'utf8', timeout: 10_000 },
-    );
-    if (volumes.error || volumes.status !== 0) throw new Error('Cannot inspect local volumes');
-    if (services.length || volumes.stdout.trim()) {
-      const running = ['anvil', 'postgres'].every((name) =>
-        services.some((s) => s.Service === name && s.State === 'running' && s.Health === 'healthy'),
-      );
-      if (!running)
-        throw new Error(
-          'Local data/containers already exist but both services are not healthy and running. Anvil is ephemeral. Run npm run infra:reset explicitly, then infra:up. Existing data has not been deleted.',
-        );
-      compose(project, ['build', 'tools']);
-      console.log(
-        'Reusing running local services; apply service configuration changes through explicit infra:reset.',
-      );
-      return;
-    }
-  }
   compose(project, ['build', 'tools']);
   compose(project, ['up', '-d', '--wait', '--wait-timeout', '60', 'anvil', 'postgres']);
 }
@@ -103,6 +61,10 @@ function test() {
     compose(project, ['exec', '-T', 'anvil', 'forge', '--version']);
     tools(project, 'probe');
     tools(project, 'smoke');
+    compose(project, ['stop', 'anvil', 'postgres']);
+    up(project);
+    tools(project, 'probe');
+    console.log('PASS stopped local services resume without deleting their volumes');
     compose(project, ['stop', 'postgres']);
     const negative = tools(project, 'probe', true);
     const output = `${negative.stdout ?? ''}\n${negative.stderr ?? ''}`;
@@ -149,7 +111,7 @@ try {
       break;
     case 'reset':
       console.log(
-        'Deleting only remitee-local containers, ephemeral chain and PostgreSQL data volume.',
+        'Deleting only remitee-local containers and saved chain, database and deployment data.',
       );
       clean(devProject);
       break;

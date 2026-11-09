@@ -14,7 +14,26 @@ services:
   anvil:
     image: ghcr.io/foundry-rs/foundry:v1.4.1@sha256:629bebb49d1ba44a52a9fc14229dd58930e3193b4b206ae43ad00089e9ead95b
     entrypoint: ["anvil"]
-    command: ["--host", "0.0.0.0", "--chain-id", "31337", "--hardfork", "cancun", "--silent"]
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--chain-id"
+      - "31337"
+      - "--hardfork"
+      - "cancun"
+      # Keep genesis identical when Anvil 1.4.1 reloads its saved history.
+      - "--timestamp"
+      - "1794256035"
+      - "--silent"
+      - "--state"
+      - "/home/foundry/state.json"
+      - "--state-interval"
+      - "1"
+      - "--preserve-historical-states"
+    volumes:
+      # Reuse the image's existing directory ownership for its non-root user.
+      - anvil-state:/home/foundry
+    stop_signal: SIGINT
     stop_grace_period: 20s
     healthcheck:
       test: ["CMD", "cast", "chain-id", "--rpc-url", "http://127.0.0.1:8545"]
@@ -97,5 +116,6 @@ services:
       - deployment-state:/state:ro
     init: true
 volumes:
+  anvil-state:
   postgres-data:
   deployment-state:

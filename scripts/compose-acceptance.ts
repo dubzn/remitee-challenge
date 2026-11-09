@@ -89,6 +89,42 @@ function nonce(address: string) {
     `const r=await fetch('http://anvil:8545',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_getTransactionCount',params:[${JSON.stringify(address)},'latest']})});console.log((await r.json()).result);`,
   );
 }
+function chainHistory() {
+  return JSON.parse(
+    execNode(`
+    import {readFileSync} from 'node:fs';
+    const deployment = JSON.parse(readFileSync('/state/deployment.json', 'utf8'));
+    async function rpc(method, params = []) {
+      const response = await fetch('http://anvil:8545', {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({jsonrpc: '2.0', id: 1, method, params}),
+      });
+      const body = await response.json();
+      if (body.error) throw new Error(body.error.message);
+      return body.result;
+    }
+    const [genesis, head, receipt, code, logs, historicalBalance] = await Promise.all([
+      rpc('eth_getBlockByNumber', ['0x0', false]),
+      rpc('eth_getBlockByNumber', ['latest', false]),
+      rpc('eth_getTransactionReceipt', [deployment.deploymentTransactionHash]),
+      rpc('eth_getCode', [deployment.address, 'latest']),
+      rpc('eth_getLogs', [{address: deployment.address, fromBlock: '0x0', toBlock: 'latest'}]),
+      rpc('eth_getBalance', [deployment.address, '0x' + deployment.deploymentBlock.toString(16)]),
+    ]);
+    console.log(JSON.stringify({deployment, genesis, head, receipt, code, logs, historicalBalance}));
+  `),
+  );
+}
+async function assertRestoredFixture(history: ReturnType<typeof chainHistory>, outcomes: any[]) {
+  locateApi();
+  await ready();
+  assert.deepEqual(chainHistory(), history);
+  for (const outcome of outcomes) {
+    const detail = await request(`/escrows/${outcome.id}`);
+    assert.equal(detail.status, 200);
+    assert.deepEqual(detail.body.escrow, outcome);
+  }
+}
 let failed = false;
 try {
   console.log(`Docker application acceptance: ${project}`);
@@ -226,6 +262,35 @@ try {
   assert.equal(nonce(first.sender), nonceBefore);
   record('application-only restart preserves all original outcomes and transaction hashes');
 
+  const history = chainHistory();
+  const existingOutcomes = [...first.outcomes, ...second.outcomes];
+  compose(['stop']);
+  compose(['up', '--build', '--wait', '--wait-timeout', '120'], false, 600_000);
+  await assertRestoredFixture(history, existingOutcomes);
+  assert.equal(nonce(first.sender), nonceBefore);
+  record('full stop/up preserves chain history, receipts, historical state and all escrows');
+
+  compose(['down', '--remove-orphans']);
+  compose(['up', '--build', '--wait', '--wait-timeout', '120'], false, 600_000);
+  await assertRestoredFixture(history, existingOutcomes);
+  assert.equal(nonce(first.sender), nonceBefore);
+  record('down/up recreates containers and resumes the same deployment and database');
+
+  const third = runDemo();
+  assert.ok(
+    third.outcomes.every(
+      (outcome: any) => BigInt(outcome.createdAt) > BigInt(history.head.timestamp),
+    ),
+    'New escrow timestamps must advance beyond the restored head',
+  );
+  assert.ok(
+    third.outcomes.every(
+      (outcome: any) => !existingOutcomes.some((previous) => previous.id === outcome.id),
+    ),
+  );
+  const nonceAfterResume = nonce(first.sender);
+  record('demo after a full restart creates new escrows and settles all four outcomes');
+
   compose(['stop', 'postgres']);
   const unhealthy = await request('/health');
   assert.equal(unhealthy.status, 503);
@@ -256,7 +321,7 @@ try {
   );
   assert.equal(wrongBuild.status, 1);
   assert.match(wrongBuild.stderr, /Packaged build differs/);
-  assert.equal(nonce(first.sender), nonceBefore);
+  assert.equal(nonce(first.sender), nonceAfterResume);
   record('changed packaged build refuses reuse without a new transaction');
 
   const incompatible = compose(
@@ -290,15 +355,23 @@ try {
       'SELECT count(*) FROM escrow_index.escrows',
     ]).stdout.trim();
   const recordsBefore = count();
-  assert.equal(recordsBefore, '8');
+  assert.equal(recordsBefore, '12');
   compose(['stop', 'application']);
-  compose(['restart', 'anvil']);
-  compose(['up', '-d', '--wait', 'anvil']);
+  compose([
+    'exec',
+    '-T',
+    'anvil',
+    'cast',
+    'rpc',
+    'anvil_reset',
+    '--rpc-url',
+    'http://127.0.0.1:8545',
+  ]);
   const refused = compose(['run', '--rm', '--no-deps', 'deploy'], true);
   assert.equal(refused.status, 1);
   assert.match(refused.stderr, /deployment_identity_mismatch/);
   assert.equal(count(), recordsBefore);
-  record('lost disposable chain refuses old descriptor/database reuse and preserves all rows');
+  record('explicit chain replacement refuses old descriptor/database reuse and preserves all rows');
 } catch (error) {
   failed = true;
   console.error(error);

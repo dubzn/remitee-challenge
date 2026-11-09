@@ -4,14 +4,14 @@ ERC-20 escrow with an event-backed read API. Stack: Solidity, Foundry, Ponder, P
 
 ## Run locally
 
-With Docker/Compose running, initialize the pinned submodules and start Anvil, PostgreSQL, deployment, indexer and API:
+With Docker/Compose running, initialize the pinned submodules and start the stack:
 
 ```sh
 git submodule update --init --depth 1
 docker compose --profile app up --build --wait --wait-timeout 120
 ```
 
-No host Node, npm, Foundry or `.env` file is needed. Startup waits for the API at `http://127.0.0.1:3000`; only this port is published.
+No host Node, npm, Foundry or `.env` file is needed. Startup launches Anvil, PostgreSQL, deployment, indexer and API, then waits for the API at `http://127.0.0.1:3000`; only this port is published.
 
 Run the lifecycle demo, then query the API:
 
@@ -19,22 +19,19 @@ Run the lifecycle demo, then query the API:
 docker compose --profile app run --rm --no-deps demo
 curl http://127.0.0.1:3000/health
 curl 'http://127.0.0.1:3000/escrows?limit=20'
+curl http://127.0.0.1:3000/escrows/1
+curl 'http://127.0.0.1:3000/escrows?status=Released&limit=20'
 ```
 
 The demo checks all four outcomes, expiry before recovery, receipts, getters, API results and payout balances. It uses unlocked local accounts and a test token, advances Anvil by seven days, and creates new IDs each run. `--no-deps` preserves the running configuration.
 
-Restart only the application to preserve the current chain session:
+Stop the stack:
 
 ```sh
-docker compose --profile app restart application
+docker compose --profile app down
 ```
 
-Anvil is ephemeral. After losing its session, reset the selected project's volumes. **This deletes its saved data:**
-
-```sh
-docker compose --profile app down --volumes --remove-orphans
-docker compose --profile app up --build --wait --wait-timeout 120
-```
+Run the startup command again to resume the same chain, deployment and escrows. State is saved in project volumes. See [development and recovery](docs/development.md) for configuration, application-only restarts and an explicit reset.
 
 ## Contract rules
 

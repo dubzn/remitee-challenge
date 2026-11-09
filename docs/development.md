@@ -12,6 +12,7 @@ The [README](../README.md) covers Docker startup/demo and the decisions/limits. 
 
 ```sh
 docker compose --profile app logs --tail 100 deploy application
+docker compose --profile app restart application
 ```
 
 I set configuration before the first startup and keep it exported or in `.env` for later `up` commands. For a different host port:
@@ -21,7 +22,7 @@ export API_PORT=3001
 docker compose --profile app up --build --wait --wait-timeout 120
 ```
 
-The deployment job builds/reuses one per-project image with the application/demo, validates chain/build identity and mines the selected setup delay. The API mounts the deployment descriptor read-only. Demo preflight checks readiness/policy before sending transactions.
+The deployment job builds/reuses one per-project image with the application/demo, validates chain/build identity and mines the selected setup delay on first deployment. Reuse aligns Anvil's next transaction timestamp with the saved head without mining or sending transactions. The API mounts the deployment descriptor read-only. Demo preflight checks readiness/policy before sending transactions.
 
 | Setting | Meaning |
 | --- | --- |
@@ -39,7 +40,16 @@ I do not mount host source, private keys or the Docker socket into the applicati
 
 ## Session loss and replay
 
-Anvil is ephemeral; PostgreSQL and the descriptor have named volumes. If stop/down/Docker restart loses the chain, old metadata/data must not be reused. After inspecting the mismatch, I select a fresh project or use the [explicit reset in the README](../README.md#run-locally). It deletes the selected project's database/descriptor. I keep the same project selection (`-p` or COMPOSE_PROJECT_NAME) across commands. The separate host development project is remitee-local.
+Anvil, PostgreSQL and the deployment descriptor use named volumes. Anvil saves chain history and historical states every second and on graceful shutdown; a fixed genesis timestamp keeps reloads consistent in the pinned version. Normal `stop` or `down`, followed by `up`, resumes the saved deployment and indexed escrows. Keep the same project selection (`-p` or COMPOSE_PROJECT_NAME) across commands. The separate host development project is remitee-local.
+
+To deliberately start over, delete only the selected project's saved chain, database and descriptor, then start again. **This deletes its local data:**
+
+```sh
+docker compose --profile app down --volumes --remove-orphans
+docker compose --profile app up --build --wait --wait-timeout 120
+```
+
+Snapshots are a local-development convenience, not atomic durability across Anvil and PostgreSQL. Forced termination or lost/corrupted volumes can leave them inconsistent; `deployment_identity_mismatch` and checkpoint checks continue to reject unverifiable data. Inspect logs before selecting a fresh project or an explicit reset; startup never silently deletes data.
 
 For a canonical deployment with an unrecoverable projection or deliberately changed policy, I can stop the old publisher, validate the descriptor, and replay into an unused schema. On the host path:
 
@@ -69,7 +79,7 @@ npm run indexer:start
 
 Fresh local deployment mines the configured delay; descriptor reuse sends no transactions or mining. An idle Anvil does not advance by waiting. Increasing delay against an existing chain may require explicitly mining enough additional blocks. I use distinct API ports when running host and Docker applications together.
 
-`infra:up` starts/reuses healthy remitee-local infrastructure. `infra:down` stops it; `infra:reset` explicitly removes that project's data. Stopped/partial sessions are refused rather than silently reset.
+`infra:up` starts or resumes remitee-local infrastructure. `infra:down` stops it; `infra:reset` explicitly removes that project's saved chain, database and descriptor.
 
 The [README test commands](../README.md#verification) are the same checks wired into CI. Contract checks run in the pinned Foundry image without Anvil/DB. Integration and Docker acceptance create isolated projects/databases and remove only their own resources; images/build cache remain cached. The dependency-free Docker test driver uses host Node for assertions, while all application/deployment/demo execution remains inside containers.
 

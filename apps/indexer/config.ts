@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export type Deployment = {
@@ -26,13 +26,19 @@ export type Settings = {
   scopeKey: string;
   startupMinBlock: bigint;
 };
-function integer(value: string | undefined, fallback: number, min: number, max: number, name: string) {
+function integer(
+  value: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+  name: string,
+) {
   const result = value === undefined ? fallback : Number(value);
   if (!Number.isSafeInteger(result) || result < min || result > max || value?.trim() === '')
     throw new Error(`Invalid ${name}`);
   return result;
 }
-export const admissionDelay = (env: NodeJS.ProcessEnv = process.env) =>
+export const parseConfirmationDelay = (env: NodeJS.ProcessEnv = process.env) =>
   integer(env.CONFIRMATION_DELAY, 2, 0, 10_000, 'CONFIRMATION_DELAY');
 export function apiListenHost(env: NodeJS.ProcessEnv = process.env) {
   const host = env.API_HOST ?? '127.0.0.1';
@@ -42,8 +48,7 @@ export function apiListenHost(env: NodeJS.ProcessEnv = process.env) {
 export function deployment(value: unknown): Deployment {
   const d = value as Deployment;
   if (
-    !d ||
-    d.version !== 1 ||
+    d?.version !== 1 ||
     d.abiVersion !== 'escrow-v1' ||
     !Number.isSafeInteger(d.chainId) ||
     d.chainId <= 0 ||
@@ -51,7 +56,12 @@ export function deployment(value: unknown): Deployment {
     d.deploymentBlock < 0
   )
     throw new Error('Invalid deployment descriptor');
-  for (const key of ['genesisHash', 'deploymentHash', 'deploymentTransactionHash', 'codeHash'] as const)
+  for (const key of [
+    'genesisHash',
+    'deploymentHash',
+    'deploymentTransactionHash',
+    'codeHash',
+  ] as const)
     if (!/^0x[0-9a-fA-F]{64}$/.test(d[key])) throw new Error(`Invalid deployment ${key}`);
   if (!/^0x[0-9a-fA-F]{40}$/.test(d.address) || /^0x0{40}$/i.test(d.address))
     throw new Error('Invalid deployment address');
@@ -79,7 +89,7 @@ export function settings(env: NodeJS.ProcessEnv = process.env): Settings {
     schema.startsWith('pg_')
   )
     throw new Error('Invalid INDEXER_SCHEMA');
-  const confirmationDelay = admissionDelay(env);
+  const confirmationDelay = parseConfirmationDelay(env);
   const reorgWindow = integer(env.REORG_WINDOW_SECONDS, 180, 1, 600, 'REORG_WINDOW_SECONDS');
   const port = integer(env.INDEXER_PORT, 42069, 1, 65535, 'INDEXER_PORT');
   const apiPort = integer(env.API_PORT, 3000, 1, 65535, 'API_PORT');

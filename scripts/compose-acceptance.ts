@@ -58,7 +58,7 @@ try {
   await ready();
   const specification = await fetch(`${base}/openapi.yaml`, { headers: { connection: 'close' } });
   assert.equal(specification.status, 200);
-  assert.equal(await specification.text(), readFileSync(resolve(root, '.docs/api/openapi.yaml'), 'utf8'));
+  assert.equal(await specification.text(), readFileSync(resolve(root, 'docs/api/openapi.yaml'), 'utf8'));
   const execution = JSON.parse(execNode(`import {existsSync,readFileSync} from 'node:fs';console.log(JSON.stringify({uid:process.getuid(),node:process.version,npm:JSON.parse(readFileSync('/usr/local/lib/node_modules/npm/package.json')).version,socket:existsSync('/var/run/docker.sock'),environmentFile:existsSync('/app/.env'),descriptor:JSON.parse(readFileSync('/state/deployment.json'))}));`));
   assert.equal(execution.uid, 1000);
   assert.equal(execution.node, 'v24.14.1');

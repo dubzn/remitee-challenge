@@ -9,7 +9,7 @@ import { businessPaths } from '../apps/indexer/api/domain.ts';
 import type { AnySchemaObject, ValidateFunction } from 'ajv';
 
 type ObjectValue = Record<string, any>;
-export const specPath = fileURLToPath(new URL('../.docs/api/openapi.yaml', import.meta.url));
+export const specPath = fileURLToPath(new URL('../docs/api/openapi.yaml', import.meta.url));
 export const specification = parse(readFileSync(specPath, 'utf8')) as ObjectValue;
 const ajv = new Ajv2020({ allErrors: true, strict: false, coerceTypes: false });
 ajv.addKeyword({

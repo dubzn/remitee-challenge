@@ -16,7 +16,7 @@ COPY --chown=node:node --from=dependencies /app/ ./
 COPY --chown=node:node apps/indexer/ ./apps/indexer/
 COPY --chown=node:node scripts/indexer.ts scripts/read-api.ts scripts/deploy-local.ts scripts/demo.ts scripts/build-artifacts.ts scripts/deployment-manifest.ts ./scripts/
 COPY --chown=node:node tsconfig.json ./
-COPY --chown=node:node .docs/api/openapi.yaml ./.docs/api/openapi.yaml
+COPY --chown=node:node docs/api/openapi.yaml ./docs/api/openapi.yaml
 COPY --chown=node:node --from=contracts /build/out/Escrow.sol/Escrow.json ./artifacts/Escrow.json
 COPY --chown=node:node --from=contracts /build/out/MockERC20.sol/MockERC20.json ./artifacts/MockERC20.json
 RUN mkdir /state && chown node:node /state

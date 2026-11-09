@@ -10,7 +10,7 @@ try {
   const config = settings();
   const pool = connection(config);
   pool.on('error', () => console.error('READ_API_DATABASE_CONNECTION_LOST'));
-  const server = apiServer(config, pool, fileURLToPath(new URL('../.docs/api/openapi.yaml', import.meta.url)));
+  const server = apiServer(config, pool, fileURLToPath(new URL('../docs/api/openapi.yaml', import.meta.url)));
   const close = () => {
     server.close(() => { void pool.end(); });
     server.closeIdleConnections();

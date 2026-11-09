@@ -22,5 +22,5 @@
 !contracts/lib/**
 contracts/lib/**/.git
 contracts/lib/**/.git/**
-!.docs/api/openapi.yaml
+!docs/api/openapi.yaml
 apps/indexer/ponder-env.d.ts

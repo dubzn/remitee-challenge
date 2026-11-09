@@ -10,7 +10,7 @@ Status: implemented with local Anvil/PostgreSQL/HTTP evidence on November 7 and 
 | GET /escrows | `{items, page, observation}` | 400 invalid filters/pagination; 503 unready/unverifiable. Zero matches is 200. |
 | GET /health | Readiness, component states and progress | 200 ready; 503 not ready with diagnostic progress; 400 unsupported query input. |
 
-The consumer listener binds loopback on API_PORT (default 3000); the spec's port variable documents overrides. Ponder keeps its separate internal listener and native health routes. This is the consumer interface within the local application, not internet deployment or an independent platform. The supplied employer reply accepts internal-process consumers; local access remains anonymous. AuthN/AuthZ and caching remain future issues #14/#13.
+The consumer listener defaults to loopback on API_PORT (3000); the spec's port variable documents overrides. In the [Docker profile](../docker-demo.md), API_HOST=0.0.0.0 enables forwarding inside the container, and Compose publishes only 127.0.0.1 on the host. Ponder keeps its separate internal loopback listener/native health routes. This is a local consumer interface; the supplied employer reply accepts internal-process consumers and local access remains anonymous. AuthN/AuthZ and caching remain future issues #14/#13.
 
 ## Inputs and pagination
 
@@ -58,7 +58,7 @@ Expected extra-block waiting alone is not failure. After startup, no eligible-ba
 
 ## Selected implementation boundary
 
-Native Node 24 node:http serves the three consumer GET routes and GET /openapi.yaml; no HTTP framework was added. Ponder's Hono facade stays internal. Both run as one local application with a shared launcher and separate loopback listeners.
+Native Node 24 node:http serves the three consumer GET routes and GET /openapi.yaml; no HTTP framework was added. Ponder's Hono facade stays internal. Both run as one local application with a shared launcher and separate listeners. Host development defaults both to loopback; Docker changes only the consumer bind for its loopback-published port.
 
 The launcher computes the startup floor once, then starts both children with the same resolved deployment file, database/schema, delay, recovery window, INDEXER_PORT and INDEXER_STARTUP_MIN_BLOCK. The API entry refuses a missing floor; an explicitly computed zero is valid. Both children derive the same scope key. If either exits, the launcher stops the sibling; a new launch recomputes context. No durable store was added. Run npm run indexer:start after the existing infrastructure/deployment setup in the [runtime guide](../indexer-runtime.md).
 
@@ -87,6 +87,6 @@ npm run api:unit
 npm run indexer:test
 ```
 
-The integrated test uses real contracts/Ponder/PostgreSQL and checks public filters, pages, exact time boundaries, transaction traces, repeatable snapshots, 400/404/503 and RPC/DB/startup/reorg behavior. It also verifies raw spec availability during dependency failure and shared-child lifecycle. These S3 checks passed in published CI on 80f1367. November 8 NatSpec/forge doc has separate local verification; the clean full-start/demo remains S4. Swagger UI is optional.
+The integrated test uses real contracts/Ponder/PostgreSQL and checks public filters, pages, exact time boundaries, transaction traces, repeatable snapshots, 400/404/503 and RPC/DB/startup/reorg behavior. It also verifies raw spec availability during dependency failure and shared-child lifecycle. S3 checks passed in published CI on 80f1367. NatSpec/forge doc and the [complete S4 Docker startup/demo](../docker-demo.md) have separate new local verification; their new CI is not inferred from the old run. Swagger UI is optional.
 
 Primary references: [OpenAPI 3.1.0](https://spec.openapis.org/oas/v3.1.0), [Ajv schema support](https://ajv.js.org/json-schema.html), [Redocly core](https://github.com/Redocly/redocly-cli/tree/main/packages/core).

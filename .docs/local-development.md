@@ -1,6 +1,6 @@
 # Local foundation and verification
 
-Infrastructure and contract-core commands, updated November 7, 2026. Foundation tracks [#1](https://github.com/dubzn/remitee-challenge/issues/1)/[#2](https://github.com/dubzn/remitee-challenge/issues/2); contracts track [#3](https://github.com/dubzn/remitee-challenge/issues/3). Deployment, indexer and read API are now implemented; use the [application runtime guide](indexer-runtime.md) after the foundation setup below. Full setup/demo orchestration remains S4.
+Host development and foundation commands, updated November 9, 2026. For complete setup/demo without host Node/npm/Foundry, use the [Docker reviewer path](docker-demo.md). This page retains the separate remitee-local foundation/development workflow. Foundation tracks #1/#2; contracts track #3. Deployment, indexer and read API are implemented; the [runtime guide](indexer-runtime.md) explains host configuration/recovery.
 
 ## Prerequisites and quick start
 
@@ -13,7 +13,7 @@ npm ci
 npm run infra:up
 ```
 
-`infra:up` builds the pinned tools image, waits up to 60 seconds for service health and checks real RPC/SQL connectivity. The default Compose project is always `remitee-local`. This is the first part of the eventual one-command application startup, not completed AC11.
+`infra:up` builds the pinned tools image, waits up to 60 seconds for service health and checks real RPC/SQL connectivity. Its Compose project is always `remitee-local`. It starts only the foundation; the Docker app profile provides the full AC11 startup/demo separately.
 
 ## Commands
 
@@ -27,9 +27,10 @@ npm run infra:up
 | `npm run check` | Typecheck plus real isolated foundation tests, including failure and cleanup. |
 | `npm run contracts:check` | Format/build/tests and compiled ABI checks in the same pinned Foundry image; no Anvil or DB services. |
 | `npm run contracts:docs` | Generate/check NatSpec Markdown/HTML in ignored `.local/contracts-docs`, using pinned Foundry; no Anvil or DB services. [Reference guide](../contracts/README.md). |
+| `npm run app:test` | Actual full Docker startup/demo/restart/failure acceptance in an isolated remitee-app-check-* project; no host application npm dependencies imported by the driver. |
 | `npm run db:sql -- db/migrations/<file.sql>` | Apply a reviewed SQL file atomically to the local DB with stop-on-error. No migrations exist yet. |
 
-`db:sql` is a thin PostgreSQL entry point, not a versioned migration runner: it records no history, does not auto-discover files, and does not make arbitrary SQL idempotent. It accepts only reviewed `.sql` files inside `db/migrations`. Files must contain transaction-compatible SQL without transaction-control statements or psql meta-commands; there is no SQL parser enforcing that convention. For these files a statement error rolls back and returns failure. An explicit `ROLLBACK` can instead exit successfully. Add schema/migration policy with the indexer issue; no CI migration coverage is claimed.
+`db:sql` is a thin PostgreSQL foundation helper, not the application's migration runner: it records no history, does not auto-discover files, and does not make arbitrary SQL idempotent. It accepts only reviewed `.sql` files inside `db/migrations`. Files must contain transaction-compatible SQL without transaction-control statements or psql meta-commands; no parser enforces that convention. A statement error rolls back and returns failure, while an explicit ROLLBACK can exit successfully. Ponder owns application schema/projection writes and replay; do not use this helper to rewrite its journal or checkpoint.
 
 ## Services and pinned tools
 
@@ -75,6 +76,6 @@ Anvil is ephemeral; PostgreSQL uses a named volume. An initial snapshot experime
 
 This foundation deliberately supports disposable sessions, not resumable chain archives. Manual Docker/RPC resets can still diverge from stored DB data. No automatic deletion or claim of canonical history preservation is made.
 
-No application projection exists at this stage. Before storing/serving it, issue #4 must validate deployment anchor and checkpoint hashes at startup and every scan, and halt on mismatch. Chain ID and deterministic contract address alone do not prove identity. Do not reuse a future projection merely because today's connectivity probe succeeds; reset both datasets explicitly when starting a different deployment.
+Foundation probes alone do not validate the application projection. The integrated application checks deployment identity, scope and canonical checkpoint before serving data; chain ID and deterministic address alone are insufficient. See [runtime/recovery](indexer-runtime.md) and [Docker session lifecycle](docker-demo.md). Existing data is never silently reinterpreted after changing deployment/history.
 
-Anvil contains public development accounts. Keep it local. The tools container has no Docker socket, cloud credentials, business signer or escrow funds. The foundation job proves its infrastructure checks; the separate contracts job verifies the approved AC1-AC5 core with 62 tests and compiled ABI checks. AC6-AC12 remain later slices.
+Anvil contains public development accounts. Keep it local. The tools container has no Docker socket, cloud credentials, business signer or escrow funds. Foundation checks prove infrastructure behavior; contract, indexer/API and Docker application checks cover their own slices. See [progress](progress.md) for AC1-AC12 evidence and remaining submission gates.

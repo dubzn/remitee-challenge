@@ -1,8 +1,8 @@
 # ERC-20 escrow challenge
 
-Status: infrastructure/contracts/indexer and S3 API have local and observed published CI evidence. November 8 contract reference generation has separate local checks; S4/S5 remain open. Created: 2026-11-03. Updated: 2026-11-08.
+Status: infrastructure/contracts/indexer and S3 have published CI evidence. Contract reference and complete Docker S4 startup/demo have separate local checks/review; new CI and S5 remain open. Created: 2026-11-03. Updated: 2026-11-09.
 Sources: [requirements and evaluation](../references.md). Delivery: [one-week plan](../delivery-plan.md).
-Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. The read API now has [local implementation/review evidence](../outputs/codex/2026-11-07-read-api-implementation.md); full startup/demo remains S4. Earlier [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) is retained.
+Candidate feedback: [explanations and response example](../design-review.md). PostgreSQL is candidate-selected. The read API has [implementation/review evidence](../outputs/codex/2026-11-07-read-api-implementation.md); S4 now has [complete Docker startup/demo evidence](../outputs/codex/2026-11-09-docker-startup.md). Earlier [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) is retained.
 Contract milestone: the approved [core interface/storage](../contract-design.md) is implemented and C1-C10 are complete. On Nov 6 the candidate requested closing the Nov 5 block and tracking alternatives as future improvements; see [closeout](../outputs/codex/2026-11-06-contract-closeout.md).
 Latest discussion: [confirmation waiting, one writer, and pause trade-offs](../safety-review.md). AC6 observation-only scope and simple token semantics are accepted; emergency pause is now a future evaluation in [#8](https://github.com/dubzn/remitee-challenge/issues/8), outside this challenge deliverable.
 Visual walkthrough: [contract flow diagrams](../contract-flows.md). Every payout requires a new authorized resolution transaction; time alone does not execute or transfer tokens.
@@ -47,7 +47,7 @@ The [supplied stakeholder reply](../references.md#stakeholder-clarification-reco
 
 ### Acceptance criteria
 
-AC1-AC5/C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC8 have [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) and [observed CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896). AC9-AC10 have [local PostgreSQL/HTTP acceptance and review](../outputs/codex/2026-11-07-read-api-implementation.md) and [published S3 CI on 80f1367](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160), confirmed November 8. The November 8 NatSpec/documentation changes require separate verification; this run does not cover them. AC11/AC12 remain full-submission gates. Foundation evidence is [separate](../local-development.md).
+AC1-AC5/C1-C10 have [local and observed CI evidence](../outputs/codex/2026-11-05-contract-implementation.md). AC6-AC8 have [indexer evidence](../outputs/codex/2026-11-06-indexer-integration.md) and [observed CI](https://github.com/dubzn/remitee-challenge/actions/runs/42248952896). AC9-AC10 have [local PostgreSQL/HTTP acceptance and review](../outputs/codex/2026-11-07-read-api-implementation.md) and [published S3 CI on 80f1367](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160), confirmed November 8. The November 8 NatSpec/documentation changes require separate verification; this run does not cover them. AC11 has separate [local Docker acceptance/review](../outputs/codex/2026-11-09-docker-startup.md); new CI and AC12/S5 remain full-submission gates. Foundation evidence is [separate](../local-development.md).
 
 | ID | Observable requirement | Required evidence |
 | --- | --- | --- |
@@ -177,6 +177,16 @@ The [OpenAPI contract](../api/openapi.yaml) and [HTTP guide](../api/README.md) o
 | S3 | API and time/filter/health tests. | AC9-AC10 pass, including expiry without a recovery transaction. |
 | S4 | One-command startup and complete demo. | AC11 passes from a clean local state; API and contract agree. |
 | S5 | Documentation, review, explanation, and submission preparation. | AC12 and every mandatory criterion have recorded evidence. |
+
+### S4 Docker startup and demo checks (November 9)
+
+The candidate authorized S4 and requested evaluation/implementation of Node inside Docker. The selected local packaging keeps one application (Ponder plus consumer API), with a build-time Solidity stage and a separate local deployment job. Docker/Compose and initialized Git submodules are prerequisites; host Node/npm/Foundry and copied .env files are not required for this reviewer path. Existing host workflows remain supported.
+
+- [x] L1: Exact one-command Compose startup and actual public readiness passed from fresh isolated projects and the normal reviewer project.
+- [x] L2: Locked/pinned non-root runtime, socket/source-free mounts, clean image contents, canonical OpenAPI bytes and API-only loopback publication verified. Ponder stays internal.
+- [x] L3: Two demos per run passed four outcomes, receipt hashes, per-action balance/recipient assertions, getter/API agreement, recoverable expiry before recovery and actual policy/lag/backlog at delays 0/2/6. Explicit mining; no idle-confirmation assumption.
+- [x] L4: Repeat startup sends no deployment transaction; app restart preserves outcomes. Exact build/scope/history refusals preserve data, and mismatched demo config refuses before writes without reconciling the active app. Project-only cleanup verified.
+- [x] L5: Final 10-check isolated Compose acceptance passed at each delay 0/2/6, host regression/foundation passed, CI is configured, operator docs and [Opus/xhigh dispositions](../outputs/codex/2026-11-09-docker-startup.md) recorded. Remote CI and S5 rehearsal are separate gates.
 
 S3 changes neither the contract ABI nor the projection schema. Local deployment/data scopes exist and remain validated; no automatic reset or migration is added. Future schema changes may rebuild disposable projections from the pinned deployment. Deployment failure/reset must not reuse unrelated data silently.
 

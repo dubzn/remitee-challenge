@@ -1,8 +1,8 @@
 # Remitee challenge planning
 
-Status: infrastructure/contracts/indexer and S3 API have local and observed published CI evidence. November 8 contract reference generation has separate local checks; full startup/demo remains S4. Updated: 2026-11-08. All authored documentation is in English.
+Status: infrastructure/contracts/indexer and S3 have local/published CI evidence. Contract reference generation and complete Docker S4 have new local checks/review; new CI/publication and S5 remain pending. Updated: 2026-11-09. All authored documentation is in English.
 
-The intended outcome is one reviewable submission within one week. S3 has [implementation, acceptance and review](outputs/codex/2026-11-07-read-api-implementation.md); the [contract reference closeout](outputs/codex/2026-11-08-documentation-closeout.md) has new local verification. Full startup/demo and rehearsal remain. Start with [local commands](local-development.md). The November 5 contract milestone is [closed](outputs/codex/2026-11-06-contract-closeout.md); pause/upgrades stay future work.
+The intended outcome is one reviewable submission within one week. Start with the [complete Docker startup/demo](docker-demo.md), or [host commands](local-development.md). S3 has [acceptance/review](outputs/codex/2026-11-07-read-api-implementation.md), [contract reference](outputs/codex/2026-11-08-documentation-closeout.md) and [S4 Docker](outputs/codex/2026-11-09-docker-startup.md) have separate local evidence. Final review/publication/rehearsal remain; pause/upgrades stay future work.
 
 ## Start here
 
@@ -34,6 +34,8 @@ The intended outcome is one reviewable submission within one week. S3 has [imple
 16. [Token compatibility and freeze limits](token-support.md): supported semantics, issuer pause/blacklist scenarios, conditional recovery and current test coverage. [Timing alternatives](contract-design.md#timing-configuration-current-policy-and-future-alternatives) distinguish current constants, permitted deployment immutables and future per-escrow terms.
 
 17. [Contract reference guide](../contracts/README.md): exact lifecycle rules, NatSpec inheritance limits and reproducible pinned Markdown/HTML generation. [November 8 closeout](outputs/codex/2026-11-08-documentation-closeout.md) records tests, assumptions and independent review.
+
+18. [Complete Docker startup/demo](docker-demo.md): reviewer path without host Node/npm/Foundry, real lifecycle demo, configuration, logs and explicit reset. [November 9 evidence](outputs/codex/2026-11-09-docker-startup.md) records actual checks and packaging decisions.
 
 ## Working agreement
 

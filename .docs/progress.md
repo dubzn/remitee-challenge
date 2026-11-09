@@ -1,6 +1,6 @@
 # Delivery progress
 
-Updated: November 8, 2026. S3 is implemented, [locally verified/reviewed](outputs/codex/2026-11-07-read-api-implementation.md), published and [verified in remote CI](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160). The [November 8 documentation closeout](outputs/codex/2026-11-08-documentation-closeout.md) records new local contract-doc and fresh-build acceptance separately. This page summarizes status; [SDD](sdd/escrow.md) owns acceptance and [delivery plan](delivery-plan.md) owns dates/scope cuts.
+Updated: November 9, 2026. S3 has published [remote CI evidence](https://github.com/dubzn/remitee-challenge/actions/runs/42340576160); the [November 8 documentation closeout](outputs/codex/2026-11-08-documentation-closeout.md) remains separate. S4 [complete Docker startup/demo](docker-demo.md) has [local evidence and Opus/xhigh dispositions](outputs/codex/2026-11-09-docker-startup.md): 30 post-review checks passed across delays 0/2/6. New Docker CI is configured, not observed remotely. [SDD](sdd/escrow.md) owns acceptance; [delivery plan](delivery-plan.md) owns dates/scope cuts.
 
 Published S3 implementation: `9ee0c36`; remote CI head: `80f1367`. New NatSpec/reference generation is locally verified and reviewed with Opus/xhigh, with fixes/check reruns recorded. Its new CI step is not yet observed remotely.
 
@@ -17,15 +17,15 @@ Published S3 implementation: `9ee0c36`; remote CI head: `80f1367`. New NatSpec/r
 | S3: read API | Complete | AC9-AC10 have [18 integrated observations and Opus/xhigh review/fixes](outputs/codex/2026-11-07-read-api-implementation.md), plus published CI on 80f1367. Detail/list/health, SQL filters/pages, traces/time fields and startup guards are implemented. GitHub #5 is tracking; no issue mutation is claimed here. |
 | API documentation | Complete | [#11](https://github.com/dubzn/remitee-challenge/issues/11): canonical OpenAPI/raw serving, 14 example uses, 7 API unit tests and actual HTTP response/schema checks passed locally and in published CI. Swagger UI is optional and absent. |
 | Contract reference docs | Complete locally; reviewed | [#12](https://github.com/dubzn/remitee-challenge/issues/12): [NatSpec + pinned forge doc](../contracts/README.md), inheritance/render/link checks, 62 tests and all 18 actual indexer/API observations against a new build passed. Opus/xhigh fixes and final twice-identical generation recorded. ABI/executable runtime unchanged; metadata differs as expected. New CI step awaits publication. |
-| S4: full startup and demo | Planned | One command must include deployment, indexer and API, then demonstrate all four outcomes from clean state; AC11 open. GitHub #6 open. Existing infra startup covers only the foundation. |
+| S4: full startup and demo | Complete locally; reviewed | [Docker-only reviewer path](docker-demo.md) without host Node/npm/Foundry. Ten post-review checks passed at each delay 0/2/6: startup, two demos, all outcomes/getters/per-action payouts, recoverable expiry, traces, restart and exact refusals. Host regression 18 observations/foundation passed again. Normal localhost:3000 setup is running. New CI awaits publication/observation; #6 remains tracking, no issue mutation claimed. |
 | S5: final review and delivery | In progress / final gate pending | Specs, reviews and AI outputs are recorded. Complete README/HTTP examples, fresh-run checks, final acceptance and candidate rehearsal; AC12 open. GitHub #7 open. |
 
 GitHub issue states #1-#7 were checked on November 6. [Issues](https://github.com/dubzn/remitee-challenge/issues) provide task tracking, #4 retains the polling proposal and appends the Ponder decision change without deleting history. Pause and upgrades (#8/#9) remain future improvements, outside the required deliverable.
 
-## Immediate next slice: S4
+## Immediate next slice: publication/new CI and S5
 
-1. Publish the November 8 documentation changes when requested and observe the new contract-doc CI step. S3 publication/CI is already verified; GitHub issue closure is separate from these repository updates.
-2. Full startup/demo integration (S4, #6) with all four outcomes. New NatSpec artifacts have fresh isolated acceptance, but the reviewer one-command flow remains unimplemented.
+1. S4 implementation/review/local acceptance are complete. Prepare/publish the new changes when requested and observe their CI; previous green S3 runs do not establish this. GitHub issue closure remains separate from repository updates.
+2. S5 clean-run/candidate rehearsal and final acceptance. The documented Docker commands have actual execution, but no candidate explanation/interview rehearsal is claimed.
 3. Complete final review, documentation and candidate rehearsal (S5, #7). Swagger UI remains optional.
 
 S2/AC6-AC8 are closed with local and observed CI evidence. Do not reopen engine selection or add a wallet UI. See [runtime commands](indexer-runtime.md) and the [Foundry testnet runbook](testnet-wallet.md).
@@ -34,9 +34,9 @@ November 6 stakeholder follow-up: internal-process consumers and expected networ
 
 ## Schedule checkpoint
 
-The November 4 foundation, November 5 contracts and November 6 indexer milestones are complete. S3's published CI has now been verified. November 8 closes contract reference documentation; S4 integration/demo and S5 final rehearsal remain.
+The November 4 foundation, November 5 contracts and November 6 indexer milestones are complete. S3 published CI is verified; contract reference documentation has November 8 local evidence. November 9 closes S4 locally after review corrections and full reruns. Publication/new CI and S5 final rehearsal remain.
 
-The planned functional checkpoint was Saturday, November 7; Sunday, November 8 was freeze/rehearsal; Monday, November 9 remains the conditional delivery target. Sunday is absorbing documentation/integration closeout, so the margin is tighter. These are planning targets, not measured remaining work or a guaranteed employer deadline. S4 must pass before calling the full functional checkpoint complete.
+The original functional checkpoint was Saturday, November 7 and freeze/rehearsal Sunday, November 8. Monday, November 9 now absorbs full Docker integration closeout. Submission remains conditional on review, new CI and S5 candidate rehearsal; the original buffer has been consumed. No employer deadline or extra candidate capacity is inferred.
 
 Requested documentation: [tooling and second-opinion disposition](outputs/codex/2026-11-06-documentation-tooling.md). The subsequent candidate follow-up prioritizes OpenAPI and consistency checks; Swagger UI is optional final polish. Issue #11 retains the original proposal and appends this clarification. The earlier provisional 6-9 hours included UI and is not a revised mandatory budget; reconcile overlap with existing documentation hours.
 

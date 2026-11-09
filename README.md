@@ -25,6 +25,8 @@ curl 'http://127.0.0.1:3000/escrows?status=Released&limit=20'
 
 The demo checks all four outcomes, expiry before recovery, receipts, getters, API results and payout balances. It uses unlocked local accounts and a test token, advances Anvil by seven days, and creates new IDs each run. `--no-deps` preserves the running configuration.
 
+To sign each step yourself with a sender and a beneficiary, follow the [manual two-wallet walkthrough](docs/manual-walkthrough.md).
+
 Stop the stack:
 
 ```sh

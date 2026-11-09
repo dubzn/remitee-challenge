@@ -36,6 +36,8 @@ The deployment job builds/reuses one per-project image with the application/demo
 | DEPLOYMENT_FILE | Validated descriptor; /state/deployment.json in Docker. |
 | RPC_URL / DATABASE_URL | Docker fixes these to local services. Host development uses explicit values from .env/environment. |
 
+The launcher validates deployment identity before starting the indexer; the API validates it before listening. RPC endpoint and deployment remain fixed until restart. Polls use two fresh RPC calls and API reads use three at the default delay, without cached successful responses or readiness. See [API consistency](api/README.md#consistency-and-failures).
+
 I do not mount host source, private keys or the Docker socket into the application. First-build downloads and cached images are expected. Local execution used Docker Engine 29.1.3/Compose 5.0.0; I have not established a minimum older Compose version.
 
 ## Session loss and replay

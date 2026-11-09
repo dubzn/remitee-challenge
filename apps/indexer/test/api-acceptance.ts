@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
-import { createWriteStream, readFileSync } from 'node:fs';
+import { createWriteStream, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type pg from 'pg';
 import { assertApiResponse } from '../../../scripts/api-spec.ts';
@@ -253,6 +253,43 @@ export async function exerciseApi(context: Context) {
   } finally {
     await context.stop(missing.child);
   }
+  const invalidDescriptor = resolve(context.runtime, 'api-invalid-deployment.json');
+  const descriptor = JSON.parse(
+    readFileSync(resolve(context.root, context.env.DEPLOYMENT_FILE!), 'utf8'),
+  );
+  writeFileSync(
+    invalidDescriptor,
+    JSON.stringify({ ...descriptor, codeHash: `0x${'ab'.repeat(32)}` }),
+  );
+  for (const [label, extra, diagnostic] of [
+    ['wrong-deployment', { DEPLOYMENT_FILE: invalidDescriptor }, 'deployment_identity_mismatch'],
+    [
+      'rpc-down-at-startup',
+      { RPC_URL: `http://127.0.0.1:${await context.freePort()}` },
+      'rpc_unavailable',
+    ],
+  ] as const) {
+    const instance = await standalone(label, extra);
+    try {
+      await context.until(
+        `${label} refused before listening`,
+        async () => instance.child.exitCode !== null,
+      );
+      assert.notEqual(instance.child.exitCode, 0);
+      await context.until(`${label} startup diagnostic`, async () =>
+        readFileSync(instance.log, 'utf8').includes(diagnostic),
+      );
+      const output = readFileSync(instance.log, 'utf8');
+      assert.match(output, /READ_API_START_REFUSED/);
+      assert.doesNotMatch(output, /READ_API_LISTENING/);
+    } finally {
+      await context.stop(instance.child);
+    }
+  }
+  record('standalone API validates deployment and RPC before listening', {
+    wrongDescriptorRefused: true,
+    unavailableRpcRefused: true,
+  });
   record(
     'S3 real HTTP database failure, startup-floor gating and readiness-independent raw specification',
     { staticDocs: true, noStandaloneFloorBypass: true },

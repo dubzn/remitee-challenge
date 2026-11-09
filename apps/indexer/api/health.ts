@@ -79,7 +79,7 @@ function diagnosticProgress(config: Settings, trace: ReadTrace) {
 
   let headLag: string | null = null;
   let eligibleBacklog: string | null = null;
-  if (head && indexed && trace.scopeMatched && trace.identityValidated) {
+  if (head && indexed && trace.scopeMatched) {
     const lag = BigInt(head.number) - BigInt(indexed.number);
     const eligible = BigInt(head.number) - BigInt(config.confirmationDelay);
     // Diagnostics clamp the height as specified. This does not make a
@@ -114,7 +114,6 @@ export async function health(config: Settings, pool: pg.Pool) {
   if (reason === 'rpc_unavailable') {
     trace.rpc = 'down';
     trace.head = null;
-    trace.identityValidated = false;
   }
   await probeUnobservedDatabase(config, pool, trace);
 

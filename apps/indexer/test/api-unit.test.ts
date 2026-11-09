@@ -271,18 +271,29 @@ test('malformed RPC head headers are rejected before opening a database connecti
 });
 
 async function observationFixture(
-  options: { rpcDown?: boolean; head?: string; missingCheckpoint?: boolean } = {},
+  options: {
+    rpcDown?: boolean;
+    head?: string;
+    missingCheckpoint?: boolean;
+    engineReady?: boolean;
+    changedCheckpoint?: boolean;
+    changedHead?: boolean;
+    missingHeadRecheck?: boolean;
+  } = {},
 ) {
   const hash = `0x${'ab'.repeat(32)}` as `0x${string}`;
   const contract = `0x${'11'.repeat(20)}` as `0x${string}`;
+  const commands: string[] = [];
+  const requests: { method: string; params: unknown[]; stage: string | undefined }[] = [];
   const rpc = createServer(async (request, response) => {
+    let raw = '';
+    for await (const chunk of request) raw += chunk;
+    const { method, params, id } = JSON.parse(raw);
+    requests.push({ method, params, stage: commands.at(-1) });
     if (options.rpcDown) {
       response.writeHead(503).end();
       return;
     }
-    let raw = '';
-    for await (const chunk of request) raw += chunk;
-    const { method, params, id } = JSON.parse(raw);
     let result: unknown;
     switch (method) {
       case 'eth_chainId':
@@ -295,6 +306,19 @@ async function observationFixture(
         result = { status: '0x1', contractAddress: contract, blockHash: hash };
         break;
       default:
+        if (commands.includes('release') && params[0] !== 'latest') {
+          const changed =
+            (params[0] === '0x0' && options.changedCheckpoint) ||
+            (params[0] === '0xc' && options.changedHead);
+          if (params[0] === '0xc' && options.missingHeadRecheck) {
+            result = null;
+            break;
+          }
+          if (changed) {
+            result = { number: params[0], hash: `0x${'cd'.repeat(32)}`, timestamp: '0x100' };
+            break;
+          }
+        }
         result = {
           number: params[0] === 'latest' ? (options.head ?? '0xc') : params[0],
           hash,
@@ -304,7 +328,9 @@ async function observationFixture(
     response.setHeader('content-type', 'application/json');
     response.end(JSON.stringify({ jsonrpc: '2.0', id, result }));
   });
-  const engine = createServer((_request, response) => response.writeHead(503).end());
+  const engine = createServer((_request, response) =>
+    response.writeHead(options.engineReady ? 200 : 503).end(),
+  );
   const port = async (server: ReturnType<typeof createServer>) => {
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
@@ -338,7 +364,6 @@ async function observationFixture(
     startupMinBlock: 0n,
   };
   const checkpoint = { scope_key: config.scopeKey, number: '0', hash, timestamp: '256' };
-  const commands: string[] = [];
   const client = {
     async query(sql: string) {
       const readsCheckpoint = sql.startsWith('SELECT');
@@ -364,8 +389,82 @@ async function observationFixture(
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   };
-  return { config, pool, commands, close };
+  return { config, pool, checkpoint, commands, requests, options, close };
 }
+
+test('a verified read uses exactly three fresh block RPCs and rechecks only after releasing SQL', async () => {
+  const fixture = await observationFixture();
+  try {
+    let callsDuringSnapshot = 0;
+    await queryObservation(fixture.config, fixture.pool, async () => {
+      callsDuringSnapshot = fixture.requests.length;
+      return null;
+    });
+    assert.equal(callsDuringSnapshot, 1);
+    assert.deepEqual(fixture.requests, [
+      { method: 'eth_getBlockByNumber', params: ['latest', false], stage: undefined },
+      { method: 'eth_getBlockByNumber', params: ['0x0', false], stage: 'release' },
+      { method: 'eth_getBlockByNumber', params: ['0xc', false], stage: 'release' },
+    ]);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('final checkpoint and captured-head mismatches retain distinct reasons', async () => {
+  for (const [options, reason] of [
+    [{ changedCheckpoint: true, changedHead: true }, 'checkpoint_hash_mismatch'],
+    [{ changedHead: true }, 'chain_changed_during_read'],
+    [{ missingHeadRecheck: true }, 'chain_changed_during_read'],
+  ] as const) {
+    const fixture = await observationFixture(options);
+    try {
+      await assert.rejects(
+        queryObservation(fixture.config, fixture.pool, async () => null),
+        (error: unknown) => (error as { code?: string }).code === reason,
+      );
+    } finally {
+      await fixture.close();
+    }
+  }
+});
+
+test('a checkpoint at the captured head shares one final block read when delay is zero', async () => {
+  const fixture = await observationFixture();
+  fixture.config.confirmationDelay = 0;
+  fixture.checkpoint.number = '12';
+  try {
+    await queryObservation(fixture.config, fixture.pool, async () => null);
+    assert.deepEqual(
+      fixture.requests.map((request) => request.params),
+      [
+        ['latest', false],
+        ['0xc', false],
+      ],
+    );
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('consecutive health probes each read the chain and cannot reuse success after RPC failure', async () => {
+  const fixture = await observationFixture({ engineReady: true });
+  try {
+    for (let probe = 0; probe < 2; probe++) {
+      fixture.requests.length = 0;
+      assert.equal((await health(fixture.config, fixture.pool)).status, 200);
+      assert.equal(fixture.requests.length, 3);
+    }
+    fixture.options.rpcDown = true;
+    const unavailable = await health(fixture.config, fixture.pool);
+    assert.equal(unavailable.status, 503);
+    assert.equal(unavailable.body.reason, 'rpc_unavailable');
+    assert.equal(unavailable.body.observation, null);
+    assert.equal(unavailable.body.components.rpc, 'down');
+  } finally {
+    await fixture.close();
+  }
+});
 
 test('health preserves RPC failure over engine unreadiness and reports only partial database diagnostics', async () => {
   const fixture = await observationFixture({ rpcDown: true });

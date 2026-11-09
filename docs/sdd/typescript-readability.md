@@ -7,7 +7,7 @@ Make the runtime API, verified reads and local demo understandable as named step
 ## Acceptance
 
 - HTTP routing, query validation, diagnostics and response shaping are easy to locate separately.
-- Verified reads visibly follow deployment verification, head capture, one read-only database snapshot, checkpoint validation and final chain rechecks. Preserve guard precedence, failure classification, transaction boundaries and connection cleanup.
+- Verified reads visibly follow head capture, one read-only database snapshot, checkpoint validation and final chain rechecks. Deployment identity is checked at bootstrap under the current [RPC budget](escrow.md). Preserve transaction boundaries, connection cleanup and the documented hash-error precedence.
 - The demo visibly follows fixture validation, readiness/policy preflight, deposits, each resolution, passive expiry, recovery and final verification. Preserve preflight-before-writes and every payout/getter/trace assertion.
 - Any launcher cleanup preserves shared startup context and sibling shutdown semantics.
 - Existing type checks, projection/API units, OpenAPI validation, real indexer/HTTP integration and full Docker acceptance pass. Do not weaken assertions or expand delivery scope.

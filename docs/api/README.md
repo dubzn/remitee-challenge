@@ -35,7 +35,11 @@ A 404 includes observation and means absence from those indexed blocks, not proo
 
 ## Consistency and failures
 
-Rows/checkpoint share a read-only repeatable-read snapshot. I require engine readiness, verify deployment/scope, startup catch-up, checkpoint eligibility and canonical hashes against RPC, and recheck before responding. A canonical older prefix may be served with visible lag/backlog. The RPC/SQL race and RPC completeness assumption remain documented limitations.
+The API verifies deployment identity before listening, including on the standalone path. An unavailable RPC or mismatched descriptor prevents startup; once running, dependency failures produce the documented 503 responses.
+
+Each read captures a fresh head, reads rows/checkpoint in one read-only repeatable-read snapshot, then verifies the checkpoint and captured head hashes after releasing the SQL connection. Scope, startup catch-up, checkpoint eligibility and engine readiness remain required. This uses three RPC calls at the default delay; a checkpoint at the captured head shares the final block request.
+
+A canonical older prefix may be served with visible lag/backlog. RPC endpoint and deployment stay fixed while the processes run; restart to validate a different configuration. Ordinary chain reorganizations remain covered by hash checks and Ponder recovery. The RPC/SQL race and RPC completeness limitations remain.
 
 Data 503 contains a sanitized observation_unavailable error/reason and no escrow data. Health 503 has ready=false, observation=null and partial diagnostics; component reachability does not certify global canonicality. headLag/eligibleBacklog are nullable until comparable heights are available. Expected extra-block waiting is distinct from unprocessed eligible work; I have no post-startup backlog SLA. See the schema for exact reason/component enums.
 

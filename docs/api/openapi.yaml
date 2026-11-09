@@ -160,15 +160,17 @@ paths:
       - Health
       operationId: getHealth
       summary: Read application readiness and progress
-      description: 'No query parameters. Probe RPC/deployment identity, database and indexer readiness.
+      description: 'No query parameters. Probe RPC, database and indexer readiness. Deployment identity
+        is validated before the API listens; an unavailable RPC or mismatched descriptor prevents startup.
         ready=true requires a verified observation and a ready indexer. Waiting for the configured extra blocks alone is
         not an error. Older indexed blocks can be served after startup catch-up, with pending indexing
         work reported and no promised backlog threshold or latency SLA. RPC/DB failure, startup catch-up or an
         unverified or replaced indexed block returns 503. A successfully queried unchanged head on idle
         Anvil is not an outage. Probe component states independently where possible; choose reason deterministically
-        in this verification order: deployment identity/RPC, captured head, database snapshot/checkpoint,
-        persisted scope, startup floor, checkpoint eligibility, canonical checkpoint hash, head/checkpoint
-        recheck, engine readiness. Sanitized observation_unavailable covers unclassified failures. A native
+        in this verification order: captured head, database snapshot/checkpoint, persisted scope,
+        startup floor, checkpoint eligibility, post-snapshot checkpoint/head RPC reads, checkpoint hash,
+        captured head hash, engine readiness. The two final block reads run concurrently; their RPC
+        failures precede hash classification. Sanitized observation_unavailable covers unclassified failures. A native
         ready engine can coexist with failed data verification. This route belongs to the consumer API
         listener, not Ponder native /health or /ready.'
       responses:
@@ -433,14 +435,14 @@ components:
       - checkpoint_unavailable
       - checkpoint_not_eligible
       - checkpoint_hash_mismatch
-      - deployment_identity_mismatch
       - persisted_scope_mismatch
       - chain_changed_during_read
       - observation_unavailable
       description: 'First failed verification in the documented deterministic guard order. observation_unavailable
         is a sanitized catch-all for unclassified observation failures. checkpoint_hash_mismatch does
         not itself prove an unrecoverable reorg: recovery/replay follows verified history and the timestamp-based
-        Ponder window, not elapsed wall-clock wait.'
+        Ponder window, not elapsed wall-clock wait. Deployment identity mismatch is a startup failure,
+        not an HTTP response reason.'
     InvalidRequest:
       type: object
       additionalProperties: false
@@ -569,7 +571,7 @@ components:
             means not assessable. Indexer ready means reachable native readiness passed and startup floor
             met, not that all observation verification passed. catching_up means native readiness or startup
             floor is unmet, not proof of forward progress. unavailable means the engine endpoint is unreachable;
-            unknown means not assessed. For hash/scope/identity mismatch, components can remain up/ready
+            unknown means not assessed. For hash/scope mismatch, components can remain up/ready
             while global ready is false; reason explains the failed verification.
         observation:
           type: 'null'

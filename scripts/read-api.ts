@@ -3,11 +3,13 @@ import { fileURLToPath } from 'node:url';
 import { apiServer } from '../apps/indexer/api/server.ts';
 import { apiListenHost, settings } from '../apps/indexer/config.ts';
 import { connection } from '../apps/indexer/read-model.ts';
+import { chainReader } from '../apps/indexer/rpc.ts';
 
 try {
   if (!/^(0|[1-9][0-9]*)$/.test(process.env.INDEXER_STARTUP_MIN_BLOCK ?? ''))
     throw new Error('Shared launcher startup floor is required');
   const config = settings();
+  await chainReader(config).identity();
   const pool = connection(config);
   pool.on('error', () => console.error('READ_API_DATABASE_CONNECTION_LOST'));
   const server = apiServer(

@@ -20,7 +20,6 @@ export type ReadTrace = {
   rpc: 'up' | 'down' | 'unknown';
   database: 'up' | 'down' | 'unknown';
   scopeMatched: boolean;
-  identityValidated: boolean;
 };
 export type Observation = {
   chainId: number;
@@ -39,7 +38,6 @@ export const newReadTrace = (): ReadTrace => ({
   rpc: 'unknown',
   database: 'unknown',
   scopeMatched: false,
-  identityValidated: false,
 });
 
 export function isMissingTableError(error: unknown): boolean {
@@ -88,19 +86,6 @@ export async function readCheckpoint(client: pg.Pool | pg.PoolClient, config: Se
   return (result.rows[0] as Checkpoint | undefined) ?? null;
 }
 
-async function verifyDeployment(chain: ChainReader, trace: ReadTrace) {
-  try {
-    await chain.identity();
-    trace.identityValidated = true;
-    trace.rpc = 'up';
-  } catch (error) {
-    const identityMismatch =
-      error instanceof ObservationError && error.code === 'deployment_identity_mismatch';
-    trace.rpc = identityMismatch ? 'up' : 'down';
-    throw error;
-  }
-}
-
 async function readValidHead(chain: ChainReader, trace: ReadTrace): Promise<Header> {
   const head = await chain.block('latest');
   const validHead =
@@ -118,6 +103,7 @@ async function readValidHead(chain: ChainReader, trace: ReadTrace): Promise<Head
     trace.rpc = 'down';
     throw new ObservationError('rpc_unavailable');
   }
+  trace.rpc = 'up';
   trace.head = head;
   return head;
 }
@@ -180,16 +166,13 @@ function validateCheckpoint(
 
 async function assertChainUnchanged(chain: ChainReader, checkpoint: Checkpoint, head: Header) {
   const indexed = BigInt(checkpoint.number);
-  const canonical = await chain.block(indexed);
-  if (canonical?.hash !== checkpoint.hash) throw new ObservationError('checkpoint_hash_mismatch');
-
-  // This recheck must not overwrite the trace captured during the initial read.
-  await chain.identity();
-  const [sameCheckpoint, sameHead] = await Promise.all([
-    chain.block(indexed),
-    chain.block(BigInt(head.number)),
-  ]);
-  if (sameCheckpoint?.hash !== checkpoint.hash || sameHead?.hash !== head.hash) {
+  const headNumber = BigInt(head.number);
+  const checkpointBlock = chain.block(indexed);
+  const headBlock = indexed === headNumber ? checkpointBlock : chain.block(headNumber);
+  const [sameCheckpoint, sameHead] = await Promise.all([checkpointBlock, headBlock]);
+  if (sameCheckpoint?.hash !== checkpoint.hash)
+    throw new ObservationError('checkpoint_hash_mismatch');
+  if (sameHead?.hash !== head.hash) {
     throw new ObservationError('chain_changed_during_read');
   }
 }
@@ -222,6 +205,8 @@ function buildObservation(
   };
 }
 
+// Bootstrap validates deployment identity. Each request independently checks
+// its SQL snapshot against fresh checkpoint/head hashes.
 export async function queryObservation<T>(
   config: Settings,
   pool: pg.Pool,
@@ -229,7 +214,6 @@ export async function queryObservation<T>(
   trace = newReadTrace(),
 ): Promise<{ data: T; observation: Observation }> {
   const chain = chainReader(config);
-  await verifyDeployment(chain, trace);
   const head = await readValidHead(chain, trace);
   const { data, checkpoint } = await readSnapshot(
     config,

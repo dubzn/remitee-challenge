@@ -66,7 +66,6 @@ export function chainReader(config: Settings) {
     method: string;
     params?: readonly unknown[];
   }): Promise<unknown> {
-    await identity();
     const head = BigInt(await rpc<Hex>('eth_blockNumber'));
     const eligible =
       head >= BigInt(config.confirmationDelay) ? head - BigInt(config.confirmationDelay) : 0n;

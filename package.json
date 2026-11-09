@@ -24,7 +24,7 @@
     "indexer:deploy:local": "node --env-file-if-exists=.env scripts/deploy-local.ts",
     "indexer:manifest": "node --env-file-if-exists=.env scripts/deployment-manifest.ts",
     "indexer:typecheck": "npm --workspace @remitee/indexer run typecheck",
-    "indexer:unit": "node --test apps/indexer/test/unit.test.ts",
+    "indexer:unit": "node --test apps/indexer/test/unit.test.ts apps/indexer/test/rpc-unit.test.ts",
     "indexer:test": "node apps/indexer/test/integration.ts",
     "api:spec": "node scripts/api-spec.ts",
     "api:unit": "node --test apps/indexer/test/api-unit.test.ts",

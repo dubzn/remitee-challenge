@@ -9,7 +9,6 @@ export const unavailabilityReasons = [
   'checkpoint_unavailable',
   'checkpoint_not_eligible',
   'checkpoint_hash_mismatch',
-  'deployment_identity_mismatch',
   'persisted_scope_mismatch',
   'chain_changed_during_read',
   'observation_unavailable',

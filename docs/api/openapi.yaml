@@ -2,14 +2,11 @@ openapi: 3.1.0
 info:
   title: Remitee Escrow Read API
   version: 0.1.0
-  description: Implemented S3 read API with a spec-first HTTP contract. Internal-process
-    consumers are acceptable; the local challenge is anonymous and read-only. Contracts and Ponder are
-    implemented. This API reads a canonical event projection and never signs, submits or retries transactions.
-    Cache/AuthN/AuthZ and Swagger UI are outside the required API implementation; Swagger UI is optional
-    polish. Only the three exact GET business paths below are contracted; trailing-slash aliases, other
-    paths/methods and static documentation are outside this operation contract. Malformed percent-encoding
-    in matched input is 400. Unclassified observation failures map to sanitized 503, not raw internal
-    errors.
+  description: Read-only API for local and internal consumers, backed by indexed escrow events.
+    The API never signs, submits or retries transactions. The local interface is anonymous;
+    authentication, caching and Swagger UI are not included. The three exact GET business paths
+    below define this contract. Malformed percent-encoding in matched input returns 400;
+    unexpected verification failures return a sanitized 503 without internal error details.
 servers:
 - url: http://127.0.0.1:{port}
   description: Local consumer API listener. Ponder stays on its separate internal port.
@@ -20,7 +17,7 @@ servers:
 security: []
 tags:
 - name: Escrows
-  description: Read admitted escrow records and time eligibility.
+  description: Read indexed escrow records and time eligibility.
 - name: Health
   description: Application readiness and diagnostic progress, distinct from Ponder native health.
 paths:
@@ -29,10 +26,10 @@ paths:
       tags:
       - Escrows
       operationId: getEscrow
-      summary: Read one escrow from the admitted projection
+      summary: Read one indexed escrow
       description: Validate a positive uint256 decimal ID, then require a verified observation before
-        either 200 or 404. No query parameters are accepted. Absence here is absence at the reported indexed
-        checkpoint, not proof that the escrow does not exist in a newer chain block.
+        either 200 or 404. No query parameters are accepted. Absence here is absence from the reported indexed
+        blocks, not proof that the escrow does not exist in a newer chain block.
       parameters:
       - name: id
         in: path
@@ -66,7 +63,7 @@ paths:
         '400':
           $ref: '#/components/responses/InvalidRequest'
         '404':
-          description: ID absent from a verified admitted snapshot.
+          description: Escrow not found in the indexed blocks after verification.
           headers:
             Cache-Control:
               description: Data and health successes/errors are not cacheable in this baseline.
@@ -90,7 +87,7 @@ paths:
       operationId: listEscrows
       summary: List matching escrows, newest ID first
       description: All supplied filters combine with AND and run in SQL before LIMIT/OFFSET. status selects
-        effectiveStatus using one captured canonical head timestamp for the response. Omitted filters
+        effectiveStatus using one observed chain timestamp for the response. Omitted filters
         include all records. All parameters are scalar; empty, repeated or unknown parameters return 400.
         Decoded limit/offset scalar text must match ^(0|[1-9][0-9]*)$ before exact range validation; signs,
         whitespace, leading zeroes, fractions, exponents and hexadecimal are rejected, without coercion.
@@ -164,10 +161,10 @@ paths:
       operationId: getHealth
       summary: Read application readiness and progress
       description: 'No query parameters. Probe RPC/deployment identity, database and indexer readiness.
-        ready=true requires a verified observation and a ready indexer. Expected admission lag alone is
-        not an error; canonical older prefixes can be ready after the startup floor is met, with eligible
-        backlog exposed and no selected backlog threshold/SLA. RPC/DB failure, startup catch-up or an
-        unverified/noncanonical checkpoint returns 503. A successfully queried unchanged head on idle
+        ready=true requires a verified observation and a ready indexer. Waiting for the configured extra blocks alone is
+        not an error. Older indexed blocks can be served after startup catch-up, with pending indexing
+        work reported and no promised backlog threshold or latency SLA. RPC/DB failure, startup catch-up or an
+        unverified or replaced indexed block returns 503. A successfully queried unchanged head on idle
         Anvil is not an outage. Probe component states independently where possible; choose reason deterministically
         in this verification order: deployment identity/RPC, captured head, database snapshot/checkpoint,
         persisted scope, startup floor, checkpoint eligibility, canonical checkpoint hash, head/checkpoint
@@ -251,7 +248,7 @@ components:
       - Released
       - Rejected
       - Expired
-      description: Latest admitted escrow event outcome, which can lag the chain head.
+      description: Latest indexed escrow event outcome, which can lag the latest chain block.
     EffectiveStatus:
       type: string
       enum:
@@ -359,18 +356,18 @@ components:
           type: boolean
           description: True iff recorded Pending and observed head time < cancelDeadline. Describes sender
             role/time eligibility, not caller identity or guaranteed transfer success, nor proof that
-            no unadmitted resolution exists.
+            no resolution is waiting to be indexed.
         canRecover:
           type: boolean
           description: True iff recorded Pending and observed head time >= expiresAt. Does not guarantee
-            token transfer availability, nor that no unadmitted resolution exists.
+            token transfer availability, nor that no resolution is waiting to be indexed.
         creationTxHash:
           $ref: '#/components/schemas/Hash'
         resolutionTxHash:
           oneOf:
           - $ref: '#/components/schemas/Hash'
           - type: 'null'
-      description: One escrow reconstructed from admitted successful events. Reuse emitted absolute deadlines,
+      description: One escrow reconstructed from indexed successful events. Reuse emitted absolute deadlines,
         never recompute them from current constants. Pending and ExpiredRecoverable have null resolutionTxHash;
         terminal outcomes have a successful resolution hash. Approval transactions, reverted attempts
         and unsigned wallet actions are not included. Time alone transfers no tokens. Sender/beneficiary
@@ -791,7 +788,7 @@ components:
           headLag: '2'
           eligibleBacklog: '0'
     EmptyList:
-      summary: No matches in the admitted projection
+      summary: No matching indexed escrows
       value:
         items: []
         page:
@@ -820,11 +817,11 @@ components:
           code: invalid_request
           message: Request contains invalid or unsupported input.
     MissingEscrow:
-      summary: Absent from a verified admitted snapshot
+      summary: Not found in the indexed blocks after verification
       value:
         error:
           code: escrow_not_found
-          message: Escrow is absent from the admitted projection.
+          message: Escrow was not found in the indexed blocks.
         observation:
           chainId: '31337'
           contractAddress: '0x4444444444444444444444444444444444444444'
@@ -848,7 +845,7 @@ components:
           message: A verified read is currently unavailable.
           reason: rpc_unavailable
     Healthy:
-      summary: Normal two-block admission lag with no eligible backlog
+      summary: Waiting for two extra blocks, with no indexing work behind schedule
       value:
         ready: true
         components:

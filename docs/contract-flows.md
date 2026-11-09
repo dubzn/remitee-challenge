@@ -50,4 +50,4 @@ flowchart TD
 
 Detected reverting/false-returning transfers roll the transaction back to Pending. I assume honest exact-transfer token behavior; a lying success or issuer restriction is not solved by these checks. [Token limitations](../README.md#assumptions-and-limitations).
 
-At exactly 2h, cancellation closes. At exactly 7d, beneficiary decisions close and sender recovery opens. Without recovery, storage remains Pending, tokens stay held and no EscrowExpired event appears. The API derives ExpiredRecoverable using observed chain time. Beneficiary confirmation is a business action; block confirmations are the indexer's separate admission policy.
+At exactly 2h, cancellation closes. At exactly 7d, beneficiary decisions close and sender recovery opens. Without recovery, storage remains Pending, tokens stay held and no EscrowExpired event appears. The API derives ExpiredRecoverable using observed chain time. Beneficiary confirmation is a business action; block confirmations are the indexer's configured delay before indexing.

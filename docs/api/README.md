@@ -4,7 +4,7 @@ I maintain [openapi.yaml](openapi.yaml) as the single machine-readable HTTP cont
 
 | GET | Success | Errors |
 | --- | --- | --- |
-| /escrows/{id} | `{escrow, observation}` | 400 invalid ID/query; 404 absent at admitted checkpoint; 503 verification unavailable |
+| /escrows/{id} | `{escrow, observation}` | 400 invalid ID/query; 404 not found in indexed blocks; 503 verification unavailable |
 | /escrows | `{items, page, observation}`; empty matches are 200 | 400 invalid filters/page; 503 verification unavailable |
 | /health | 200 ready with components/progress | 400 unsupported query; 503 unready with diagnostics |
 | /openapi.yaml | Canonical YAML | Independent of RPC/DB readiness while the API process runs |
@@ -24,14 +24,14 @@ IDs, raw token amounts, chain IDs, block heights/counts and Unix-second timestam
 
 | Field | Meaning |
 | --- | --- |
-| onChainStatus | Latest admitted event outcome |
+| onChainStatus | Latest indexed event outcome |
 | effectiveStatus | Pending becomes ExpiredRecoverable when the observed head reaches expiresAt; terminal outcomes remain terminal |
 | canCancel | Recorded Pending and observed time strictly before cancelDeadline; describes sender eligibility |
 | canRecover | Recorded Pending and observed time at/after expiresAt; describes sender eligibility |
-| creationTxHash / resolutionTxHash | Successful escrow transactions; resolution is null until an admitted terminal outcome |
+| creationTxHash / resolutionTxHash | Successful escrow transactions; resolution is null until a terminal outcome is indexed |
 | observation | Verified head/hash/time, indexed checkpoint, delay, recovery window, head lag and eligible backlog |
 
-A 404 includes observation and means absence at that checkpoint, not proof of absence from newer blocks. Eligibility cannot promise transaction success: a competing/unadmitted resolution or token restriction may prevent it. Expired means successful recovery; elapsed time alone does not create that outcome.
+A 404 includes observation and means absence from those indexed blocks, not proof of absence from newer blocks. Eligibility cannot promise transaction success: a competing resolution not yet indexed or token restriction may prevent it. Expired means successful recovery; elapsed time alone does not create that outcome.
 
 ## Consistency and failures
 

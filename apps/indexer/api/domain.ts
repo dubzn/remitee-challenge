@@ -2,7 +2,13 @@ import type { Observation } from '../read-model.ts';
 
 export const UINT256_MAX = (1n << 256n) - 1n;
 const UINT64_MAX = (1n << 64n) - 1n;
-export const statuses = ['Pending', 'CancelledBySender', 'Released', 'Rejected', 'Expired'] as const;
+export const statuses = [
+  'Pending',
+  'CancelledBySender',
+  'Released',
+  'Rejected',
+  'Expired',
+] as const;
 export type Status = (typeof statuses)[number];
 export type EffectiveStatus = Status | 'ExpiredRecoverable';
 export const effectiveStatuses: readonly string[] = [...statuses, 'ExpiredRecoverable'];
@@ -45,37 +51,34 @@ function queryParameters(raw: string, allowed: readonly string[]) {
     let key: string;
     let value: string;
     try {
-      key = decodeURIComponent((separator < 0 ? pair : pair.slice(0, separator)).replace(/\+/g, ' '));
-      value = decodeURIComponent((separator < 0 ? '' : pair.slice(separator + 1)).replace(/\+/g, ' '));
+      key = decodeURIComponent(
+        (separator < 0 ? pair : pair.slice(0, separator)).replace(/\+/g, ' '),
+      );
+      value = decodeURIComponent(
+        (separator < 0 ? '' : pair.slice(separator + 1)).replace(/\+/g, ' '),
+      );
     } catch {
       throw new InputError('query');
     }
-    if (!allowed.includes(key) || !value || result.has(key)) throw new InputError(allowed.includes(key) ? key : 'query');
+    if (!allowed.includes(key)) throw new InputError('query');
+    if (!value || result.has(key)) throw new InputError(key);
     result.set(key, value);
   }
   return result;
 }
-export function parseRequest(target: string): ApiRequest {
-  const split = target.indexOf('?');
-  const path = split < 0 ? target : target.slice(0, split);
-  const rawQuery = split < 0 ? '' : target.slice(split + 1);
-  if (path === '/openapi.yaml') {
-    queryParameters(rawQuery, []);
-    return { kind: 'spec' };
+function parseDetail(encodedId: string, rawQuery: string): DataQuery {
+  queryParameters(rawQuery, []);
+  let id: string;
+  try {
+    id = decodeURIComponent(encodedId);
+  } catch {
+    throw new InputError('id');
   }
-  if (path === routes.health) {
-    queryParameters(rawQuery, []);
-    return { kind: 'health' };
-  }
-  const detail = detailPattern.exec(path);
-  if (detail) {
-    queryParameters(rawQuery, []);
-    let id: string;
-    try { id = decodeURIComponent(detail[1]!); } catch { throw new InputError('id'); }
-    inputInteger(id, UINT256_MAX, 'id', true);
-    return { kind: 'detail', id };
-  }
-  if (path !== routes.list) return { kind: 'not_found' };
+  inputInteger(id, UINT256_MAX, 'id', true);
+  return { kind: 'detail', id };
+}
+
+function parseListQuery(rawQuery: string): ListQuery {
   const query = queryParameters(rawQuery, ['sender', 'beneficiary', 'status', 'limit', 'offset']);
   const parsed: ListQuery = {
     kind: 'list',
@@ -97,23 +100,53 @@ export function parseRequest(target: string): ApiRequest {
   return parsed;
 }
 
+export function parseRequest(target: string): ApiRequest {
+  const split = target.indexOf('?');
+  const path = split < 0 ? target : target.slice(0, split);
+  const rawQuery = split < 0 ? '' : target.slice(split + 1);
+
+  if (path === '/openapi.yaml') {
+    queryParameters(rawQuery, []);
+    return { kind: 'spec' };
+  }
+  if (path === routes.health) {
+    queryParameters(rawQuery, []);
+    return { kind: 'health' };
+  }
+  const detail = detailPattern.exec(path);
+  if (detail) return parseDetail(detail[1]!, rawQuery);
+  if (path === routes.list) return parseListQuery(rawQuery);
+  return { kind: 'not_found' };
+}
+
 export function decimal(value: unknown, maximum = UINT256_MAX, positive = false): string {
-  if (typeof value !== 'string' && typeof value !== 'bigint' && !(typeof value === 'number' && Number.isSafeInteger(value)))
+  if (
+    typeof value !== 'string' &&
+    typeof value !== 'bigint' &&
+    !(typeof value === 'number' && Number.isSafeInteger(value))
+  )
     throw new Error('Invalid integer representation');
   const text = String(value);
-  if (text.length > 78 || !canonicalDecimal.test(text)) throw new Error('Invalid integer representation');
+  if (text.length > 78 || !canonicalDecimal.test(text))
+    throw new Error('Invalid integer representation');
   const integer = BigInt(text);
   if (integer > maximum || (positive && integer === 0n)) throw new Error('Integer out of range');
   return text;
 }
 function hex(value: unknown, pattern: RegExp) {
-  if (typeof value !== 'string' || !pattern.test(value)) throw new Error('Invalid hexadecimal value');
+  if (typeof value !== 'string' || !pattern.test(value))
+    throw new Error('Invalid hexadecimal value');
   return value.toLowerCase();
 }
-export function eligibility(status: Status, cancelDeadline: bigint, expiresAt: bigint, now: bigint) {
+export function eligibility(
+  status: Status,
+  cancelDeadline: bigint,
+  expiresAt: bigint,
+  now: bigint,
+) {
   const pending = status === 'Pending';
   return {
-    effectiveStatus: pending && now >= expiresAt ? 'ExpiredRecoverable' as const : status,
+    effectiveStatus: pending && now >= expiresAt ? ('ExpiredRecoverable' as const) : status,
     canCancel: pending && now < cancelDeadline,
     canRecover: pending && now >= expiresAt,
   };
@@ -126,7 +159,10 @@ export function publicEscrow(row: Record<string, unknown>, now: bigint) {
   const expiresAt = decimal(row.expires_at, UINT64_MAX);
   if (BigInt(createdAt) > BigInt(cancelDeadline) || BigInt(cancelDeadline) >= BigInt(expiresAt))
     throw new Error('Invalid deadlines');
-  const resolution = row.resolution_transaction_hash === null ? null : hex(row.resolution_transaction_hash, hashPattern);
+  const resolution =
+    row.resolution_transaction_hash === null
+      ? null
+      : hex(row.resolution_transaction_hash, hashPattern);
   if ((resolution === null) !== (status === 'Pending')) throw new Error('Invalid resolution trace');
   return {
     id: decimal(row.id, UINT256_MAX, true),
@@ -134,7 +170,9 @@ export function publicEscrow(row: Record<string, unknown>, now: bigint) {
     beneficiary: hex(row.beneficiary, addressPattern),
     token: hex(row.token, addressPattern),
     amount: decimal(row.amount, UINT256_MAX, true),
-    createdAt, cancelDeadline, expiresAt,
+    createdAt,
+    cancelDeadline,
+    expiresAt,
     onChainStatus: status,
     ...eligibility(status, BigInt(cancelDeadline), BigInt(expiresAt), now),
     creationTxHash: hex(row.creation_transaction_hash, hashPattern),
@@ -153,5 +191,9 @@ export function publicObservation(observation: Observation) {
   };
 }
 export function publicBlock(block: { number: unknown; hash: unknown; timestamp: unknown }) {
-  return { number: decimal(block.number), hash: hex(block.hash, hashPattern), timestamp: decimal(block.timestamp, UINT64_MAX) };
+  return {
+    number: decimal(block.number),
+    hash: hex(block.hash, hashPattern),
+    timestamp: decimal(block.timestamp, UINT64_MAX),
+  };
 }

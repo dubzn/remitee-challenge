@@ -19,7 +19,6 @@
     "infra:probe": "node scripts/infra.ts probe",
     "infra:test": "node scripts/infra.ts test",
     "infra:clean-check": "node scripts/infra.ts clean-check",
-    "db:sql": "node scripts/infra.ts sql",
     "indexer:start": "node --env-file-if-exists=.env scripts/indexer.ts",
     "indexer:deploy:local": "node --env-file-if-exists=.env scripts/deploy-local.ts",
     "indexer:manifest": "node --env-file-if-exists=.env scripts/deployment-manifest.ts",

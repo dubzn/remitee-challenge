@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync, realpathSync } from 'node:fs';
-import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -15,7 +14,7 @@ if (checkProject && !/^remitee-check-[a-z0-9-]+$/.test(checkProject)) {
   );
 }
 
-function compose(project: string, args: string[], capture = false, input?: string) {
+function compose(project: string, args: string[], capture = false) {
   const files = ['-f', 'compose.yaml'];
   if (project === devProject) files.push('-f', 'compose.local.yaml');
   const result = spawnSync(
@@ -25,7 +24,6 @@ function compose(project: string, args: string[], capture = false, input?: strin
       cwd: root,
       encoding: 'utf8',
       stdio: capture ? 'pipe' : ['pipe', 'inherit', 'inherit'],
-      input,
       timeout: args[0] === 'build' ? 300_000 : 120_000,
     },
   );
@@ -126,38 +124,8 @@ try {
         throw new Error('REMITEE_CHECK_PROJECT is required for explicit CI cleanup');
       clean(checkProject);
       break;
-    case 'sql': {
-      const file = process.argv[3];
-      if (!file) throw new Error('Usage: npm run db:sql -- db/migrations/<reviewed-file.sql>');
-      const path = realpathSync(resolve(root, file));
-      const within = relative(resolve(root, 'db/migrations'), path);
-      if (within.startsWith('..') || isAbsolute(within) || !within.endsWith('.sql')) {
-        throw new Error('SQL must be a reviewed .sql file inside db/migrations');
-      }
-      compose(
-        devProject,
-        [
-          'exec',
-          '-T',
-          'postgres',
-          'psql',
-          '-U',
-          'remitee',
-          '-d',
-          'remitee',
-          '--set',
-          'ON_ERROR_STOP=1',
-          '--single-transaction',
-          '--file',
-          '-',
-        ],
-        false,
-        readFileSync(path, 'utf8'),
-      );
-      break;
-    }
     default:
-      throw new Error('Expected up, stop, reset, probe, test, clean-check or sql');
+      throw new Error('Expected up, stop, reset, probe, test or clean-check');
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'Infrastructure command failed');
